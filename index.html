@@ -1,0 +1,562 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>filx</title>
+<style>
+:root{color-scheme:dark;--bg:#0b0d12;--card:#14171f;--text:#e8eaf0;--sub:#8a90a2;--line:#262b38;--main:#8b7cf6;--main2:#a29bfe;--red:#f0587c}
+*{box-sizing:border-box}
+body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Hiragino Sans","Noto Sans JP",sans-serif;background:var(--bg);color:var(--text)}
+button{font:inherit;cursor:pointer}
+input,textarea,select{font:inherit;color:inherit;background:var(--bg)}
+.hidden{display:none!important}
+
+/* auth */
+#auth{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;background:var(--bg)}
+.auth-box{background:var(--card);border:1px solid var(--line);border-radius:20px;padding:32px;width:100%;max-width:380px}
+.logo{font-size:28px;font-weight:800;color:var(--main);margin:0 0 4px}
+.tag{color:var(--sub);font-size:13px;margin:0 0 20px}
+.tabs{display:flex;gap:8px;margin-bottom:16px}
+.tabs button{flex:1;padding:10px;border:none;border-radius:10px;background:var(--bg);color:var(--sub);font-weight:700}
+.tabs button.on{background:var(--main);color:#0b0d12}
+.field{margin-bottom:12px}
+.field label{display:block;font-size:12px;color:var(--sub);margin-bottom:4px}
+.field input,.field textarea{width:100%;padding:11px 12px;border:1px solid var(--line);border-radius:10px;outline:none;resize:none}
+.field input:focus,.field textarea:focus{border-color:var(--main)}
+.btn{width:100%;padding:12px;border:none;border-radius:12px;background:var(--main);color:#0b0d12;font-weight:700}
+.btn:hover{opacity:.9}
+.err{color:var(--red);font-size:13px;min-height:18px;margin:6px 0}
+.note{font-size:12px;color:var(--sub);margin-top:12px;line-height:1.6}
+
+/* app layout */
+#app{display:flex;min-height:100vh;max-width:1000px;margin:0 auto}
+nav{width:230px;padding:20px 12px;position:sticky;top:0;height:100vh;display:flex;flex-direction:column;gap:4px;border-right:1px solid var(--line);background:var(--card)}
+nav .logo{padding:0 12px 16px}
+.nav-item{display:flex;align-items:center;gap:12px;padding:12px 14px;border:none;background:none;border-radius:12px;font-size:16px;text-align:left;font-weight:600;color:var(--text);position:relative}
+.nav-item:hover{background:var(--bg)}
+.nav-item.on{background:rgba(139,124,246,.16);color:var(--main)}
+.nav-item .ic{font-size:20px;width:24px;text-align:center}
+.badge{background:var(--red);color:#fff;border-radius:10px;font-size:11px;padding:1px 7px;margin-left:auto}
+.nav-post{margin-top:12px}
+main{flex:1;min-width:0;max-width:640px;border-right:1px solid var(--line);background:var(--card);min-height:100vh}
+.head{position:sticky;top:0;z-index:5;background:rgba(20,23,31,.9);backdrop-filter:blur(8px);padding:16px 20px;font-weight:800;font-size:18px;border-bottom:1px solid var(--line)}
+aside{flex:1;padding:20px;min-width:0}
+.side-card{background:var(--card);border-radius:16px;padding:16px;font-size:13px;color:var(--sub);line-height:1.7}
+.side-card b{color:var(--text)}
+
+/* compose */
+.compose{padding:16px 20px;border-bottom:8px solid var(--bg)}
+.compose textarea{background:transparent;width:100%;border:none;outline:none;resize:none;font-size:16px;min-height:70px}
+.compose-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:8px}
+.switch{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--sub)}
+.compose .send{margin-left:auto;width:auto;padding:8px 22px;border-radius:20px}
+.count{font-size:12px;color:var(--sub)}
+
+/* post */
+.post{padding:16px 20px;border-bottom:1px solid var(--line)}
+.post-top{display:flex;gap:12px}
+.avatar.link,.who.link{cursor:pointer}
+.who.link:hover{text-decoration:underline}
+.avatar.sm{width:22px;height:22px;font-size:11px;display:inline-flex;margin-right:6px;vertical-align:middle}
+.bio{white-space:pre-wrap;word-break:break-word;line-height:1.6;margin:8px auto 4px!important;max-width:420px;color:var(--text)!important}
+.edit{text-align:left;max-width:420px;margin:0 auto}
+.edit .avatar{margin:0 auto 10px!important}
+.edit-btns{display:flex;gap:8px;justify-content:center;margin-bottom:16px}
+.small-btn{padding:7px 16px;border:1px solid var(--line);background:var(--card);color:var(--text);border-radius:20px;font-size:13px;font-weight:700;cursor:pointer}
+.btn-row{display:flex;gap:8px;margin-top:6px}
+.btn-row .btn.ghost{background:var(--bg);color:var(--text);border:1px solid var(--line)}
+.btn.inline{width:auto;padding:9px 26px;border-radius:20px;margin-top:12px}
+.avatar{width:42px;height:42px;border-radius:50%;overflow:hidden;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;color:#fff;font-weight:700}
+.post-body{flex:1;min-width:0}
+.who{font-weight:700;font-size:15px}
+.meta{color:var(--sub);font-size:12px;font-weight:400;margin-left:6px}
+.text{margin:6px 0 10px;white-space:pre-wrap;word-break:break-word;line-height:1.6}
+.actions{display:flex;gap:24px}
+.act{border:none;background:none;color:var(--sub);display:flex;align-items:center;gap:6px;font-size:14px;padding:4px 0}
+.act:hover{color:var(--main)}
+.act.liked{color:var(--red)}
+.act.del:hover{color:var(--red)}
+.comments{margin:12px 0 0 54px;border-left:2px solid var(--line);padding-left:12px}
+.comment{padding:8px 0;font-size:14px}
+.comment .who{font-size:13px}
+.cform{display:flex;gap:8px;margin-top:8px}
+.cform input{flex:1;padding:8px 12px;border:1px solid var(--line);border-radius:20px;outline:none}
+.cform button{padding:8px 16px;border:none;border-radius:20px;background:var(--main);color:#fff;font-weight:700}
+.empty{padding:60px 20px;text-align:center;color:var(--sub)}
+
+/* notif / dm / profile */
+.notif{padding:14px 20px;border-bottom:1px solid var(--line);display:flex;gap:12px;align-items:center}
+.notif.new{background:rgba(139,124,246,.1)}
+.conv{padding:14px 20px;border-bottom:1px solid var(--line);display:flex;gap:12px;align-items:center;cursor:pointer}
+.conv:hover{background:var(--bg)}
+.dm-new{display:flex;gap:8px;padding:14px 20px;border-bottom:8px solid var(--bg)}
+.dm-new input{flex:1;padding:10px 12px;border:1px solid var(--line);border-radius:10px;outline:none}
+.dm-new button{padding:10px 18px;border:none;border-radius:10px;background:var(--main);color:#fff;font-weight:700}
+.chat{padding:16px 20px;display:flex;flex-direction:column;gap:8px;min-height:50vh}
+.bubble{max-width:75%;padding:9px 14px;border-radius:16px;line-height:1.5;word-break:break-word;white-space:pre-wrap}
+.bubble.me{align-self:flex-end;background:var(--main);color:#fff;border-bottom-right-radius:4px}
+.bubble.you{align-self:flex-start;background:var(--line);border-bottom-left-radius:4px}
+.chat-form{display:flex;gap:8px;padding:12px 20px;border-top:1px solid var(--line);position:sticky;bottom:0;background:var(--card)}
+.chat-form input{flex:1;padding:10px 14px;border:1px solid var(--line);border-radius:20px;outline:none}
+.chat-form button{padding:10px 18px;border:none;border-radius:20px;background:var(--main);color:#fff;font-weight:700}
+.back{border:none;background:none;color:var(--main);font-weight:700;padding:0;margin-right:10px}
+.profile-top{padding:28px 20px;text-align:center;border-bottom:8px solid var(--bg)}
+.profile-top .avatar{width:80px;height:80px;font-size:36px;margin:0 auto 12px}
+.profile-top h2{margin:0}
+.profile-top p{color:var(--sub);margin:4px 0}
+.logout{margin-top:14px;padding:8px 20px;border:1px solid var(--line);background:var(--card);border-radius:20px;color:var(--red);font-weight:700}
+.toast{position:fixed;left:50%;bottom:90px;transform:translateX(-50%);background:#2b3040;color:#fff;padding:10px 18px;border-radius:20px;font-size:14px;z-index:99;opacity:0;transition:.3s;pointer-events:none}
+.toast.show{opacity:.92}
+
+/* modal */
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.65);display:flex;align-items:center;justify-content:center;z-index:50;padding:16px}
+.modal{background:var(--card);border:1px solid var(--line);border-radius:16px;width:100%;max-width:520px}
+.modal .compose{border:none}
+
+@media(max-width:820px){
+  #app{display:block}
+  nav{position:fixed;bottom:0;top:auto;left:0;right:0;width:100%;height:auto;flex-direction:row;justify-content:space-around;border-right:none;border-top:1px solid var(--line);padding:4px;z-index:20}
+  nav .logo,.nav-post{display:none}
+  .nav-item{flex-direction:column;gap:2px;font-size:10px;padding:6px 8px;flex:1;align-items:center}
+  .nav-item .badge{position:absolute;top:2px;right:18%;margin:0}
+  main{max-width:none;border-right:none;padding-bottom:70px}
+  .fab{display:flex!important}
+}
+.fab{display:none;position:fixed;right:16px;bottom:80px;width:54px;height:54px;border-radius:50%;background:var(--main);color:#fff;border:none;font-size:26px;align-items:center;justify-content:center;box-shadow:0 6px 20px rgba(0,0,0,.5);z-index:25}
+</style>
+</head>
+<body>
+
+<!-- ログイン / 新規登録 -->
+<div id="auth">
+  <div class="auth-box">
+    <h1 class="logo" style="margin-bottom:20px">filx</h1>
+    <div class="tabs">
+      <button id="tabLogin" class="on">ログイン</button>
+      <button id="tabSignup">新規登録</button>
+    </div>
+    <form id="authForm" novalidate>
+      <div class="field hidden" id="fName"><label>ユーザー名（DMで使う名前）</label><input id="aName" maxlength="12" placeholder="例：taro"></div>
+      <div class="field"><label>学校のメールアドレス</label><input id="aEmail" type="email" placeholder="xxxx@fzk.example.jp" autocomplete="username"></div>
+      <div class="field"><label>パスワード（6文字以上）</label><input id="aPass" type="password" autocomplete="current-password"></div>
+      <div class="err" id="aErr"></div>
+      <button class="btn" id="aBtn">ログイン</button>
+    </form>
+    <p class="note">※ メールアドレスに「fzk」を含む人だけ登録できます。</p>
+  </div>
+</div>
+
+<!-- アプリ本体 -->
+<div id="app" class="hidden">
+  <nav>
+    <h1 class="logo">filx</h1>
+    <button class="nav-item" data-view="home">ホーム</button>
+    <button class="nav-item" data-view="notif">通知<span class="badge hidden" id="nBadge">0</span></button>
+    <button class="nav-item" data-view="dm">DM</button>
+    <button class="nav-item" data-view="me">プロフィール</button>
+    <button class="btn nav-post" id="openCompose">ポストする</button>
+  </nav>
+  <main id="main"></main>
+</div>
+<button class="fab hidden" id="fab">＋</button>
+<div class="toast" id="toast"></div>
+<div id="modalHost"></div>
+
+<script>
+'use strict';
+/* ========== 基本 ========== */
+const $ = s => document.querySelector(s);
+const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const memStore = {};
+const sget = k => { try{ return sessionStorage.getItem(k) }catch(e){ return memStore[k] || null } };
+const sset = (k, v) => { memStore[k] = v; try{ sessionStorage.setItem(k, v) }catch(e){} };
+const sdel = k => { delete memStore[k]; try{ sessionStorage.removeItem(k) }catch(e){} };
+
+function hash(s){ let h = 5381; for(const c of String(s)) h = ((h<<5)+h) ^ c.charCodeAt(0); return h>>>0; }
+const colors = ['#6c5ce7','#00b894','#e17055','#0984e3','#e84393','#d6a12e','#00cec9','#d63031'];
+const colorOf = s => colors[hash(s) % colors.length];
+function ago(ts){
+  const s = (Date.now()-ts)/1000;
+  if(s<60) return 'たった今'; if(s<3600) return Math.floor(s/60)+'分前';
+  if(s<86400) return Math.floor(s/3600)+'時間前'; return Math.floor(s/86400)+'日前';
+}
+function toast(t){ const e=$('#toast'); e.textContent=t; e.classList.add('show'); clearTimeout(toast.t); toast.t=setTimeout(()=>e.classList.remove('show'),2000); }
+
+/* アイコンの見た目（匿名は絵文字、名前ありは画像か頭文字） */
+const avBG = u => u.anon ? `background:${u.color}` : (u.avatar ? `background:url('${u.avatar}') center/cover` : `background:${colorOf(u.name)}`);
+const avTxt = u => u.anon ? esc(u.icon) : (u.avatar ? '' : esc((u.name||'?')[0].toUpperCase()));
+
+/* ========== 状態 ========== */
+let token = sget('filx_token');
+let me = null;
+let view = 'home', profileId = null, editing = false, pendingAvatar, dmWith = null;
+let feed = [], profile = null, notifs = [], convs = [], chat = null, chatShown = null;
+let unread = 0, pendingScroll = null;
+const openComments = new Set();
+
+/* ========== サーバーとの通信 ========== */
+async function api(path, method = 'GET', body){
+  const opt = { method, headers: {} };
+  if(token) opt.headers.Authorization = 'Bearer ' + token;
+  if(body !== undefined){ opt.headers['Content-Type'] = 'application/json'; opt.body = JSON.stringify(body); }
+  let r;
+  try{ r = await fetch(path, opt); }catch(e){ throw new Error('サーバーにつながりません'); }
+  let data = {};
+  try{ data = await r.json(); }catch(e){}
+  if(r.status === 401 && token && !/^\/api\/(login|signup)/.test(path)){ doLogout(true); throw new Error('ログインし直してください'); }
+  if(!r.ok) throw new Error(data.error || 'エラーが発生しました');
+  return data;
+}
+
+/* ========== ログイン / 新規登録 ========== */
+let mode = 'login';
+function setMode(m){
+  mode = m;
+  $('#tabLogin').classList.toggle('on', m==='login');
+  $('#tabSignup').classList.toggle('on', m==='signup');
+  $('#fName').classList.toggle('hidden', m==='login');
+  $('#aBtn').textContent = m==='login' ? 'ログイン' : 'アカウントを作る';
+  $('#aErr').textContent = '';
+}
+$('#tabLogin').onclick = () => setMode('login');
+$('#tabSignup').onclick = () => setMode('signup');
+$('#authForm').onsubmit = async e => {
+  e.preventDefault();
+  const err = m => $('#aErr').textContent = m;
+  const email = $('#aEmail').value.trim().toLowerCase();
+  const password = $('#aPass').value;
+  const name = $('#aName').value.trim();
+  if(!email.includes('@')) return err('メールアドレスを正しく入力してください');
+  if(password.length < 6) return err('パスワードは6文字以上にしてください');
+  if(mode === 'signup' && !name) return err('ユーザー名を入力してください');
+  $('#aBtn').disabled = true; err('');
+  try{
+    const r = await api(mode === 'signup' ? '/api/signup' : '/api/login', 'POST', { email, password, name });
+    token = r.token; sset('filx_token', token); me = r.user;
+    start();
+  }catch(ex){ err(ex.message); }
+  $('#aBtn').disabled = false;
+};
+
+function doLogout(silent){
+  if(!silent && token) api('/api/logout', 'POST').catch(()=>{});
+  token = null; me = null; sdel('filx_token');
+  $('#app').classList.add('hidden'); $('#fab').classList.add('hidden'); $('#auth').classList.remove('hidden');
+  $('#aPass').value = ''; setMode('login');
+}
+function logout(){ doLogout(false); }
+
+function start(){
+  $('#auth').classList.add('hidden');
+  $('#app').classList.remove('hidden');
+  $('#fab').classList.remove('hidden');
+  view = 'home'; dmWith = null; profileId = me.id; editing = false; unread = 0;
+  go();
+  pollSummary();
+}
+
+/* ========== ナビ ========== */
+document.querySelectorAll('.nav-item').forEach(b => b.onclick = () => {
+  view = b.dataset.view; dmWith = null; profileId = me.id; editing = false; go(); window.scrollTo(0,0);
+});
+$('#openCompose').onclick = openComposeModal;
+$('#fab').onclick = openComposeModal;
+
+const TITLES = { home:'ホーム', notif:'通知', dm:'DM', me:'プロフィール' };
+const headHTML = t => `<div class="head">${t}</div>`;
+
+/* 画面を切り替える：読み込み中表示 → データ取得 → 描画 */
+function go(){
+  const had = (view==='home' && feed.length) || (view==='me' && profile && profile.user.id===(profileId||me.id)) || (view==='notif' && notifs.length) || (view==='dm' && (dmWith ? chat : convs.length));
+  if(!had) $('#main').innerHTML = headHTML(TITLES[view]) + '<div class="empty">読み込み中…</div>';
+  chatShown = null;
+  refresh(false);
+}
+
+async function refresh(silent){
+  const v = view, pid = profileId, dw = dmWith;
+  try{
+    if(v === 'home'){ const r = await api('/api/posts'); if(view!==v) return; feed = r.posts; }
+    else if(v === 'me'){ const r = await api('/api/users/' + (pid || me.id)); if(view!==v || profileId!==pid) return; profile = r; }
+    else if(v === 'notif'){ const r = await api('/api/notifs'); if(view!==v) return; notifs = r.notifs; }
+    else if(v === 'dm'){
+      if(dw){
+        const c = await api('/api/dm/' + dw);
+        if(view!==v || dmWith!==dw) return;
+        const same = chat && chat.user.id === dw && chat.messages.length === c.messages.length;
+        const near = window.innerHeight + window.scrollY >= document.body.scrollHeight - 150;
+        chat = c;
+        if(silent && chatShown === dw && $('#chatBody')){
+          if(!same){ $('#chatBody').innerHTML = bubbles(); if(near) window.scrollTo(0, document.body.scrollHeight); }
+          return;
+        }
+      } else { const r = await api('/api/dm'); if(view!==v || dmWith) return; convs = r.convs; }
+    }
+  }catch(e){ if(!silent) toast(e.message); return; }
+  render();
+  if(v === 'notif'){
+    api('/api/notifs/read', 'POST').then(() => { unread = 0; setBadge(); }).catch(()=>{});
+  }
+}
+
+function setBadge(){ const bd = $('#nBadge'); bd.textContent = unread; bd.classList.toggle('hidden', !unread || view === 'notif'); }
+
+function render(){
+  document.querySelectorAll('.nav-item').forEach(b => b.classList.toggle('on', b.dataset.view === view && (view !== 'me' || !profileId || profileId === me.id)));
+  setBadge();
+  const m = $('#main');
+  if(view !== 'dm' || !dmWith) chatShown = null;
+  if(view === 'home'){ m.innerHTML = headHTML('ホーム') + composeHTML('main') + feedHTML(feed); bindCompose('main'); }
+  else if(view === 'notif') m.innerHTML = headHTML('通知') + notifHTML();
+  else if(view === 'dm') dmWith ? renderChat(m) : renderConvs(m);
+  else if(view === 'me') renderProfile(m);
+  if(pendingScroll && view === 'home'){
+    const e = $('#p-' + pendingScroll);
+    if(e) e.scrollIntoView({ block:'center' }); else toast('この投稿は見つかりませんでした');
+    pendingScroll = null;
+  }
+}
+
+/* ========== 投稿フォーム ========== */
+function composeHTML(id){
+  return `<div class="compose" id="cmp-${id}">
+    <textarea id="t-${id}" maxlength="200" placeholder="いま、どうしてる？"></textarea>
+    <div class="compose-row">
+      <label class="switch"><input type="checkbox" id="a-${id}"> 匿名で投稿</label>
+      <span class="count" id="n-${id}">0/200</span>
+      <button class="btn send" id="s-${id}">ポスト</button>
+    </div></div>`;
+}
+function bindCompose(id, after){
+  const t = $('#t-'+id); if(!t) return;
+  t.oninput = () => $('#n-'+id).textContent = t.value.length + '/200';
+  $('#s-'+id).onclick = async () => {
+    const text = t.value.trim();
+    if(!text) return toast('内容を入力してください');
+    const btn = $('#s-'+id); btn.disabled = true;
+    try{
+      await api('/api/posts', 'POST', { text, anon: $('#a-'+id).checked });
+      if(after) after();
+      view = 'home'; dmWith = null; go(); window.scrollTo(0,0); toast('投稿しました');
+    }catch(e){ toast(e.message); btn.disabled = false; }
+  };
+}
+function openComposeModal(){
+  $('#modalHost').innerHTML = `<div class="modal-bg" id="mbg"><div class="modal">${composeHTML('m')}</div></div>`;
+  $('#mbg').onclick = e => { if(e.target.id === 'mbg') closeModal(); };
+  bindCompose('m', closeModal);
+  $('#t-m').focus();
+}
+const closeModal = () => $('#modalHost').innerHTML = '';
+
+/* ========== フィード ========== */
+function feedHTML(list){
+  if(!list.length) return `<div class="empty">まだ投稿がありません</div>`;
+  return list.map(postHTML).join('');
+}
+const linkAttr = a => a.anon ? '' : `onclick="openProfile('${a.id}')"`;
+function postHTML(p){
+  const a = p.author, open = openComments.has(p.id);
+  return `<div class="post" id="p-${p.id}">
+    <div class="post-top">
+      <div class="avatar ${a.anon?'':'link'}" style="${avBG(a)}" ${linkAttr(a)}>${avTxt(a)}</div>
+      <div class="post-body">
+        <div><span class="who ${a.anon?'':'link'}" ${linkAttr(a)}>${esc(a.name)}</span><span class="meta">${ago(p.ts)}</span></div>
+        <div class="text">${esc(p.text)}</div>
+        <div class="actions">
+          <button class="act ${p.liked?'liked':''}" onclick="toggleLike('${p.id}')">${p.liked?'❤️':'🤍'} ${p.likes}</button>
+          <button class="act" onclick="toggleComments('${p.id}')">💬 ${p.comments.length}</button>
+          ${p.mine ? `<button class="act del" onclick="delPost('${p.id}')">🗑 削除</button>`
+                   : `<button class="act del" onclick="report('${p.id}')">${p.reported?'通報済み':'🚩 通報'}</button>`}
+        </div>
+      </div>
+    </div>
+    ${open ? commentsHTML(p) : ''}
+  </div>`;
+}
+function commentsHTML(p){
+  const list = p.comments.map(c => {
+    const a = c.author;
+    return `<div class="comment"><span class="avatar sm ${a.anon?'':'link'}" style="${avBG(a)}" ${linkAttr(a)}>${avTxt(a)}</span><span class="who ${a.anon?'':'link'}" ${linkAttr(a)}>${esc(a.name)}</span><span class="meta">${ago(c.ts)}</span><div class="text" style="margin:2px 0 0">${esc(c.text)}</div></div>`;
+  }).join('');
+  return `<div class="comments">${list || '<div class="meta" style="margin:0">最初のコメントを書いてみよう</div>'}
+    <div class="cform"><input id="ci-${p.id}" maxlength="100" placeholder="コメントする" onkeydown="if(event.key==='Enter')addComment('${p.id}')"><label class="switch"><input type="checkbox" id="ca-${p.id}"> 匿名</label><button onclick="addComment('${p.id}')">送信</button></div></div>`;
+}
+const allPosts = () => feed.concat(profile ? profile.posts : []);
+async function toggleLike(id){
+  allPosts().filter(x => x.id === id).forEach(p => { p.liked = !p.liked; p.likes += p.liked ? 1 : -1; });
+  render();
+  try{ await api('/api/posts/' + id + '/like', 'POST'); }catch(e){ toast(e.message); refresh(true); }
+}
+function toggleComments(id){ openComments.has(id) ? openComments.delete(id) : openComments.add(id); render(); }
+async function addComment(id){
+  const inp = $('#ci-'+id), text = inp.value.trim(); if(!text) return;
+  const anon = $('#ca-'+id).checked;
+  inp.disabled = true;
+  try{
+    await api('/api/posts/' + id + '/comments', 'POST', { text, anon });
+    await refresh(true);
+  }catch(e){ toast(e.message); inp.disabled = false; return; }
+  const el = $('#ci-'+id); if(el) el.focus();
+}
+async function delPost(id){
+  if(!confirm('この投稿を削除しますか？')) return;
+  try{ await api('/api/posts/' + id, 'DELETE'); await refresh(true); }catch(e){ toast(e.message); }
+}
+async function report(id){
+  try{ await api('/api/posts/' + id + '/report', 'POST'); toast('通報しました。ありがとう'); await refresh(true); }catch(e){ toast(e.message); }
+}
+
+/* ========== 通知 ========== */
+function notifHTML(){
+  if(!notifs.length) return `<div class="empty">通知はまだありません</div>`;
+  return notifs.map(n => {
+    const a = n.actor;
+    const who = a ? a.name : '匿名の人';
+    const av = a ? `style="${avBG(a)}">${avTxt(a)}` : `style="background:var(--line)">?`;
+    const prev = n.exists ? esc(n.preview) : '削除された投稿';
+    const body = n.type === 'like' ? 'があなたの投稿にいいねしました' : 'があなたの投稿にコメントしました';
+    return `<div class="notif ${n.read?'':'new'}" style="cursor:pointer" onclick="goPost('${n.pid}')"><div class="avatar" ${av}</div>
+      <div style="min-width:0"><b>${esc(who)}</b>${body}${n.type==='comment' && n.text ? `<br><span style="word-break:break-word">${esc(n.text)}</span>` : ''}<br><span class="meta" style="margin:0">「${prev}」 ・ ${ago(n.ts)}</span></div></div>`;
+  }).join('');
+}
+function goPost(pid){
+  const n = notifs.find(x => x.pid === pid);
+  if(n && !n.exists) return toast('この投稿は削除されました');
+  pendingScroll = pid; openComments.add(pid); view = 'home'; dmWith = null; go();
+}
+
+/* ========== DM ========== */
+function renderConvs(m){
+  const list = convs.map(c => `<div class="conv" onclick="openChat('${c.user.id}')"><div class="avatar" style="${avBG(c.user)}">${avTxt(c.user)}</div>
+      <div style="min-width:0"><b>${esc(c.user.name)}</b><br><span class="meta" style="margin:0">${esc(c.text)} ・ ${ago(c.ts)}</span></div></div>`).join('')
+    || `<div class="empty">まだDMはありません<br>ユーザー名を入力して送ってみよう</div>`;
+  m.innerHTML = headHTML('DM') + `<div class="dm-new"><input id="dmName" placeholder="相手のユーザー名" onkeydown="if(event.key==='Enter')startDM()"><button onclick="startDM()">開く</button></div>` + list;
+}
+async function startDM(){
+  const n = $('#dmName').value.trim(); if(!n) return;
+  try{
+    const r = await api('/api/users/by-name/' + encodeURIComponent(n));
+    if(r.user.id === me.id) return toast('自分にはDMできません');
+    openChat(r.user.id);
+  }catch(e){ toast(e.message); }
+}
+function openChat(id){ view = 'dm'; dmWith = id; chat = null; go(); window.scrollTo(0,0); }
+const bubbles = () => chat.messages.map(d => `<div class="bubble ${d.mine?'me':'you'}">${esc(d.text)}</div>`).join('') || '<div class="empty">メッセージを送ってみよう</div>';
+function renderChat(m){
+  const u = chat.user;
+  m.innerHTML = `<div class="head"><button class="back" onclick="dmWith=null;go()">←</button><span class="who link" onclick="openProfile('${u.id}')">${esc(u.name)}</span></div>
+    <div class="chat" id="chatBody">${bubbles()}</div>
+    <div class="chat-form"><input id="dmText" maxlength="300" placeholder="メッセージ" onkeydown="if(event.key==='Enter')sendDM()"><button onclick="sendDM()">送信</button></div>`;
+  chatShown = u.id;
+  window.scrollTo(0, document.body.scrollHeight);
+}
+async function sendDM(){
+  const inp = $('#dmText'), text = inp.value.trim(); if(!text) return;
+  inp.value = '';
+  try{
+    await api('/api/dm/' + dmWith, 'POST', { text });
+    await refresh(true);
+    window.scrollTo(0, document.body.scrollHeight);
+  }catch(e){ inp.value = text; toast(e.message); }
+  inp.focus();
+}
+
+/* ========== プロフィール ========== */
+function openProfile(id){ profileId = id; editing = false; view = 'me'; dmWith = null; go(); window.scrollTo(0,0); }
+function startEdit(){ editing = true; pendingAvatar = undefined; render(); }
+function cancelEdit(){ editing = false; render(); }
+function pickAvatar(inp){
+  const f = inp.files[0]; if(!f) return;
+  if(!f.type.startsWith('image/')) return toast('画像を選んでください');
+  const r = new FileReader();
+  r.onload = () => {
+    const img = new Image();
+    img.onload = () => {
+      const S = 160, c = document.createElement('canvas'); c.width = c.height = S;
+      const m = Math.min(img.width, img.height);
+      c.getContext('2d').drawImage(img, (img.width-m)/2, (img.height-m)/2, m, m, 0, 0, S, S);
+      pendingAvatar = c.toDataURL('image/jpeg', 0.85);
+      const p = $('#avPrev'); p.style.background = `url('${pendingAvatar}') center/cover`; p.textContent = '';
+    };
+    img.onerror = () => toast('画像を読み込めませんでした');
+    img.src = r.result;
+  };
+  r.readAsDataURL(f);
+}
+function removeAvatar(){
+  pendingAvatar = '';
+  const p = $('#avPrev'); p.style.background = colorOf(me.name); p.textContent = me.name[0].toUpperCase();
+}
+async function saveProfile(){
+  const name = $('#eName').value.trim(), bio = $('#eBio').value.trim();
+  if(!name) return toast('名前を入力してください');
+  const body = { name, bio };
+  if(pendingAvatar !== undefined) body.avatar = pendingAvatar;
+  try{
+    const r = await api('/api/me', 'PUT', body);
+    me = r.user; pendingAvatar = undefined; editing = false;
+    await refresh(true); toast('保存しました');
+  }catch(e){ toast(e.message); }
+}
+function renderProfile(m){
+  const u = profile.user, own = profile.own;
+  let top;
+  if(own && editing){
+    top = `<div class="profile-top"><div class="edit">
+      <div class="avatar" id="avPrev" style="${avBG(u)}">${avTxt(u)}</div>
+      <div class="edit-btns"><label class="small-btn">画像を選ぶ<input type="file" accept="image/*" hidden onchange="pickAvatar(this)"></label><button class="small-btn" onclick="removeAvatar()">画像を削除</button></div>
+      <div class="field"><label>名前</label><input id="eName" maxlength="12" value="${esc(u.name)}"></div>
+      <div class="field"><label>ステータスメッセージ</label><textarea id="eBio" maxlength="80" rows="3" placeholder="ひとこと書いてみよう">${esc(u.bio||'')}</textarea></div>
+      <div class="btn-row"><button class="btn ghost" onclick="cancelEdit()">キャンセル</button><button class="btn" onclick="saveProfile()">保存</button></div>
+    </div></div>`;
+  } else {
+    top = `<div class="profile-top">
+      <div class="avatar" style="${avBG(u)}">${avTxt(u)}</div>
+      <h2>${esc(u.name)}</h2>
+      ${own ? `<p>${esc(u.email)}</p>` : ''}
+      <p class="bio">${u.bio ? esc(u.bio) : (own ? '<span style="color:var(--sub)">ステータスメッセージはまだありません</span>' : '')}</p>
+      <p>投稿 ${profile.posts.length} ・ もらったいいね ${profile.likes}</p>
+      ${own ? `<div class="btn-row" style="justify-content:center"><button class="btn inline" onclick="startEdit()">プロフィールを編集</button></div><button class="logout" onclick="logout()">ログアウト</button>`
+            : `<button class="btn inline" onclick="openChat('${u.id}')">DMを送信</button>`}
+    </div>`;
+  }
+  m.innerHTML = headHTML(own ? 'プロフィール' : esc(u.name)) + top +
+    `<div class="head" style="position:static;font-size:15px">${own ? '自分の投稿' : '投稿'}</div>` + feedHTML(profile.posts);
+}
+
+/* ========== 自動更新（新しい通知・投稿・DMを数秒ごとに取り込む） ========== */
+async function pollSummary(){
+  if(!me || document.hidden) return;
+  try{
+    const r = await api('/api/summary');
+    if(r.unread > unread && view !== 'notif') toast('新しい通知があります');
+    unread = r.unread; setBadge();
+  }catch(e){}
+}
+const isBusy = () => {
+  if(editing || $('#modalHost').innerHTML) return true;
+  const ae = document.activeElement;
+  if(ae && (ae.tagName === 'INPUT' || ae.tagName === 'TEXTAREA')) return true;
+  return [...document.querySelectorAll('#main input[type=text],#main input:not([type]),#main textarea')].some(x => x.value);
+};
+setInterval(() => {
+  if(!me || document.hidden) return;
+  pollSummary();
+  if(view === 'dm' && dmWith) refresh(true);     // チャットは入力中でも新着だけ差し込む
+  else if(!isBusy()) refresh(true);
+}, 5000);
+document.addEventListener('visibilitychange', () => { if(!document.hidden && me){ pollSummary(); if(!isBusy()) refresh(true); } });
+
+/* ========== 起動 ========== */
+(async () => {
+  setMode('login');
+  if(!token) return;
+  $('#auth').classList.add('hidden');
+  try{ me = (await api('/api/me')).user; start(); }
+  catch(e){ if(token){ token = null; sdel('filx_token'); } $('#auth').classList.remove('hidden'); }
+})();
+</script>
+</body>
+</html>
