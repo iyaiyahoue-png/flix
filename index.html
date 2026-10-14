@@ -82,8 +82,8 @@ aside{flex:1;padding:20px;min-width:0}
 .comment{padding:8px 0;font-size:14px}
 .comment .who{font-size:13px}
 .cform{display:flex;gap:8px;margin-top:8px}
-.cform input{flex:1;padding:8px 12px;border:1px solid var(--line);border-radius:20px;outline:none}
-.cform button{padding:8px 16px;border:none;border-radius:20px;background:var(--main);color:#fff;font-weight:700}
+.cform input{flex:1;min-width:0;padding:8px 12px;border:1px solid var(--line);border-radius:20px;outline:none}
+.cform button{flex-shrink:0;white-space:nowrap;padding:8px 16px;border:none;border-radius:20px;background:var(--main);color:#fff;font-weight:700}
 .empty{padding:60px 20px;text-align:center;color:var(--sub)}
 
 /* notif / dm / profile */
@@ -150,6 +150,8 @@ aside{flex:1;padding:20px;min-width:0}
 .ulist{padding:6px 0;max-height:60vh;overflow:auto}
 .chat-bar{position:sticky;bottom:0;background:var(--card);border-top:1px solid var(--line)}
 .chat-bar .pv{padding:8px 20px 0}
+.c-act{gap:16px;margin-top:2px}
+.c-act .act{font-size:12px}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.112.3/dist/umd/supabase.js"></script>
 </head>
@@ -222,7 +224,7 @@ function errMsg(e){
   const m = (e && e.message) || String(e);
   if(/Invalid login credentials/i.test(m)) return 'メールアドレスかパスワードが違います';
   if(/already registered|already been registered/i.test(m)) return 'このメールアドレスは登録済みです';
-  if(/Database error saving new user/i.test(m)) return '登録できませんでした。メールアドレスに「fzk」が入っているか、ユーザー名を確認してください';
+  if(/Database error saving new user/i.test(m)) return '登録できませんでした。メールアドレスに「fzk」が入っているか、ユーザー名を確認してください（削除されたアカウントのメールアドレスは使えません）';
   if(/rate limit|too many requests|over_request_rate/i.test(m)) return 'しばらく待ってからもう一度試してください';
   if(/Failed to fetch|NetworkError|Load failed/i.test(m)) return 'ネットにつながりません';
   if(/Password should be at least/i.test(m)) return 'パスワードは6文字以上にしてください';
@@ -264,9 +266,9 @@ async function ensureProfiles(ids){
 const normPost = p => ({
   id: p.id, text: p.text, image: p.image_path || null, ts: Date.parse(p.created_at), uid: p.user_id,
   likes: (p.likes || []).map(l => l.user_id),
-  comments: (p.comments || []).map(c => ({ id:c.id, text:c.text, ts:Date.parse(c.created_at), uid:c.user_id })).sort((a,b)=>a.ts-b.ts)
+  comments: (p.comments || []).map(c => ({ id:c.id, text:c.text, ts:Date.parse(c.created_at), uid:c.user_id, likes:(c.comment_likes || []).map(l => l.user_id) })).sort((a,b)=>a.ts-b.ts)
 });
-const PSEL = 'id,text,image_path,created_at,user_id,likes(user_id),comments(id,text,created_at,user_id)';
+const PSEL = 'id,text,image_path,created_at,user_id,likes(user_id),comments(id,text,created_at,user_id,comment_likes(user_id))';
 
 /* ========== 画像（非公開の置き場所に保存し、見るときだけ期限つきのURLを発行） ========== */
 const signed = {};                   // 保存場所 → {url, exp}
@@ -620,8 +622,10 @@ function postHTML(p){
 }
 function commentsHTML(p){
   const list = p.comments.map(c => {
-    const a = U(c.uid);
-    return `<div class="comment"><span class="avatar sm link" style="${avBG(a)}" onclick="openProfile('${a.id}')">${avTxt(a)}</span><span class="who link" onclick="openProfile('${a.id}')">${esc(a.name)}</span><span class="meta">${ago(c.ts)}</span><div class="text" style="margin:2px 0 0">${esc(c.text)}</div></div>`;
+    const a = U(c.uid), liked = c.likes.includes(me.id);
+    const del = c.uid === me.id ? `<button class="act del" onclick="delComment('${p.id}','${c.id}')">削除</button>`
+              : (isAdmin ? `<button class="act del" onclick="delComment('${p.id}','${c.id}')">削除（管理者）</button>` : '');
+    return `<div class="comment"><span class="avatar sm link" style="${avBG(a)}" onclick="openProfile('${a.id}')">${avTxt(a)}</span><span class="who link" onclick="openProfile('${a.id}')">${esc(a.name)}</span><span class="meta">${ago(c.ts)}</span><div class="text" style="margin:2px 0 0">${esc(c.text)}</div><div class="actions c-act"><button class="act ${liked?'liked':''}" onclick="toggleCommentLike('${p.id}','${c.id}')">${liked?'❤️':'🤍'} ${c.likes.length}</button>${del}</div></div>`;
   }).join('');
   return `<div class="comments">${list || '<div class="meta" style="margin:0">最初のコメントを書いてみよう</div>'}
     <div class="cform"><input id="ci-${p.id}" maxlength="100" placeholder="コメントする" onkeydown="if(event.key==='Enter')addComment('${p.id}')"><button onclick="addComment('${p.id}')">送信</button></div></div>`;
@@ -637,6 +641,27 @@ async function toggleLike(id){
   }catch(e){ toast(fail(e)); refresh(true); }
 }
 function toggleComments(id){ openComments.has(id) ? openComments.delete(id) : openComments.add(id); render(); }
+const findComment = (pid, cid) => { for(const p of allPosts()){ if(p.id !== pid) continue; const c = p.comments.find(x => x.id === cid); if(c) return c; } return null; };
+async function toggleCommentLike(pid, cid){
+  const c = findComment(pid, cid); if(!c) return;
+  const was = c.likes.includes(me.id);
+  allPosts().forEach(p => p.comments.forEach(x => { if(x.id === cid) x.likes = was ? x.likes.filter(u => u !== me.id) : x.likes.concat(me.id); }));
+  render();
+  try{
+    if(was) await q(sb.from('comment_likes').delete().eq('comment_id', cid).eq('user_id', me.id));
+    else await q(sb.from('comment_likes').insert({ comment_id: cid, user_id: me.id }));
+  }catch(e){ toast(fail(e)); refresh(true); }
+}
+/* 自分のコメント、または管理者なら誰のコメントでも削除できる */
+async function delComment(pid, cid){
+  const c = findComment(pid, cid); if(!c) return;
+  if(!confirm(c.uid === me.id ? 'このコメントを削除しますか？' : '管理者として、このコメントを削除しますか？')) return;
+  try{
+    const rows = await q(sb.from('comments').delete().eq('id', cid).select('id'));
+    if(!rows.length) throw new Error('削除できませんでした');
+    toast('削除しました'); await refresh(true);
+  }catch(e){ toast(fail(e)); }
+}
 async function addComment(id){
   const inp = $('#ci-'+id), text = inp.value.trim(); if(!text) return;
   inp.disabled = true;
