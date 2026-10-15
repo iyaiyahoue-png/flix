@@ -152,6 +152,23 @@ aside{flex:1;padding:20px;min-width:0}
 .chat-bar .pv{padding:8px 20px 0}
 .c-act{gap:16px;margin-top:2px}
 .c-act .act{font-size:12px}
+.comment.reply{margin-left:22px;padding-left:10px;border-left:2px solid var(--line)}
+.replyto{font-size:12px;color:var(--sub);margin-top:2px}
+.replyto b{color:var(--main2)}
+.replying{font-size:12px;color:var(--sub);margin-top:8px}
+.replying b{color:var(--main2)}
+.replying button{border:none;background:none;color:var(--sub);font-size:14px;padding:0 4px}
+.msg{display:flex;flex-direction:column;max-width:78%;gap:2px}
+.msg.me{align-self:flex-end;align-items:flex-end}
+.msg.you{align-self:flex-start;align-items:flex-start}
+.msg .bubble{max-width:100%}
+.quote{border-left:3px solid var(--main);background:var(--bg);color:var(--sub);font-size:12px;padding:3px 8px;border-radius:6px;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;cursor:pointer}
+.quote b{color:var(--main2)}
+.mmeta{font-size:11px;color:var(--sub)}
+.rbtn{border:none;background:none;color:var(--sub);font-size:11px;padding:0}
+.rbtn:hover{color:var(--main)}
+.typing{padding:0 20px 8px;font-size:12px;color:var(--sub)}
+.msg.flash{outline:2px solid var(--main);outline-offset:3px;border-radius:12px}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.112.3/dist/umd/supabase.js"></script>
 </head>
@@ -182,7 +199,7 @@ aside{flex:1;padding:20px;min-width:0}
     <h1 class="logo">filx</h1>
     <button class="nav-item" data-view="home">ホーム</button>
     <button class="nav-item" data-view="notif">通知<span class="badge hidden" id="nBadge">0</span></button>
-    <button class="nav-item" data-view="dm">DM</button>
+    <button class="nav-item" data-view="dm">DM<span class="badge hidden" id="dBadge">0</span></button>
     <button class="nav-item" data-view="me">プロフィール</button>
     <button class="btn nav-post" id="openCompose">ポストする</button>
   </nav>
@@ -252,7 +269,7 @@ let isAdmin = false;                 // 管理者か（画面の表示用。本�
 const PROF = {};                     // ユーザー情報のキャッシュ
 let view = 'home', homeTab = 'all', profileId = null, editing = false, pendingAvatar, dmWith = null;
 let feed = [], myFollowing = new Set(), profile = null, notifs = [], convs = [], chat = null, chatShown = null;
-let unread = 0, pendingScroll = null;
+let unread = 0, unreadDM = 0, pendingScroll = null;
 const openComments = new Set();
 const U = id => PROF[id] || { id, name:'?', avatar:null, bio:'' };
 
@@ -266,9 +283,9 @@ async function ensureProfiles(ids){
 const normPost = p => ({
   id: p.id, text: p.text, image: p.image_path || null, ts: Date.parse(p.created_at), uid: p.user_id,
   likes: (p.likes || []).map(l => l.user_id),
-  comments: (p.comments || []).map(c => ({ id:c.id, text:c.text, ts:Date.parse(c.created_at), uid:c.user_id, likes:(c.comment_likes || []).map(l => l.user_id) })).sort((a,b)=>a.ts-b.ts)
+  comments: (p.comments || []).map(c => ({ id:c.id, text:c.text, ts:Date.parse(c.created_at), uid:c.user_id, parent:c.parent_id || null, likes:(c.comment_likes || []).map(l => l.user_id) })).sort((a,b)=>a.ts-b.ts)
 });
-const PSEL = 'id,text,image_path,created_at,user_id,likes(user_id),comments(id,text,created_at,user_id,comment_likes(user_id))';
+const PSEL = 'id,text,image_path,created_at,user_id,likes(user_id),comments(id,text,created_at,user_id,parent_id,comment_likes(user_id))';
 
 /* ========== 画像（非公開の置き場所に保存し、見るときだけ期限つきのURLを発行） ========== */
 const signed = {};                   // 保存場所 → {url, exp}
@@ -409,11 +426,12 @@ async function loadMe(){
 }
 
 async function doLogout(silent){
-  me = null; isAdmin = false; feed = []; profile = null; notifs = []; convs = []; chat = null; unread = 0; editing = false;
+  try{ if(typingCh){ sb.removeChannel(typingCh); } }catch(e){} typingCh = null; typingKey = ''; dmReply = null;
+  me = null; isAdmin = false; feed = []; profile = null; notifs = []; convs = []; chat = null; unread = 0; unreadDM = 0; editing = false;
   Object.keys(cimg).forEach(dropImg);
   if(!silent && sb){ try{ await sb.auth.signOut({ scope: 'local' }); }catch(e){} }
   $('#app').classList.add('hidden'); $('#fab').classList.add('hidden'); $('#modalHost').innerHTML = '';
-  $('#auth').classList.remove('hidden');
+  $('#auth').classList.remove('hidden'); document.title = 'filx';
   $('#aPass').value = ''; setMode('login');
 }
 const logout = () => doLogout(false);
@@ -424,7 +442,7 @@ window.addEventListener('resize', setNavH);
 function start(){
   $('#auth').classList.add('hidden');
   $('#app').classList.remove('hidden');
-  view = 'home'; homeTab = 'all'; dmWith = null; profileId = me.id; editing = false; unread = 0;
+  view = 'home'; homeTab = 'all'; dmWith = null; profileId = me.id; editing = false; unread = 0; unreadDM = 0;
   setNavH(); syncFab();
   go();
   pollSummary();
@@ -498,18 +516,22 @@ async function refresh(silent){
     }
     else if(v === 'dm'){
       if(dw){
-        const rows = await q(sb.from('dms').select('id,from_user,to_user,text,image_path,created_at')
+        const rows = await q(sb.from('dms').select('id,from_user,to_user,text,image_path,created_at,read_at,reply_to')
           .or(`and(from_user.eq.${me.id},to_user.eq.${dw}),and(from_user.eq.${dw},to_user.eq.${me.id})`)
           .order('created_at', { ascending:false }).limit(200));
         await ensureProfiles([dw]);
         await trySign(rows.map(d => d.image_path));
         if(view !== v || dmWith !== dw || !me) return;
-        const msgs = rows.reverse().map(d => ({ id:d.id, mine:d.from_user === me.id, text:d.text, image:d.image_path || null, ts:Date.parse(d.created_at) }));
-        const same = chat && chat.user.id === dw && chat.messages.length === msgs.length && (!msgs.length || chat.messages[msgs.length-1].id === msgs[msgs.length-1].id);
+        const msgs = rows.reverse().map(d => ({ id:d.id, mine:d.from_user === me.id, text:d.text, image:d.image_path || null, ts:Date.parse(d.created_at), read:!!d.read_at, reply:d.reply_to || null }));
+        const sig = msgs.map(m => m.id + (m.read ? 'r' : '')).join();
+        const same = chat && chat.user.id === dw && chat.sig === sig;
         const near = window.innerHeight + window.scrollY >= document.body.scrollHeight - 150;
-        chat = { user: U(dw), messages: msgs };
+        const gotNew = chat && chat.user.id === dw && msgs.length > chat.messages.length && !msgs[msgs.length-1].mine;
+        chat = { user: U(dw), messages: msgs, sig };
+        if(gotNew) typingUntil = 0;
+        markRead(dw);
         if(silent && chatShown === dw && $('#chatBody')){
-          if(!same){ $('#chatBody').innerHTML = bubbles(); if(near) window.scrollTo(0, document.body.scrollHeight); }
+          if(!same){ $('#chatBody').innerHTML = bubbles(); updateTyping(); if(near) window.scrollTo(0, document.body.scrollHeight); }
           return;
         }
       } else {
@@ -523,18 +545,26 @@ async function refresh(silent){
     }
   }catch(e){ if(!silent) toast(fail(e)); return; }
   render();
+  if(v === 'dm' && dmWith){                       // 開いているチャットの相手からの通知は、読んだことにする
+    sb.from('notifications').update({ read:true }).eq('read', false).eq('type', 'dm').eq('from_user', dmWith).then(() => pollSummary());
+  }
   if(v === 'notif'){
-    sb.from('notifications').update({ read:true }).eq('read', false).then(() => { unread = 0; setBadge(); });
+    sb.from('notifications').update({ read:true }).eq('read', false).then(() => { unread = 0; unreadDM = 0; setBadge(); });
   }
 }
 
-function setBadge(){ const bd = $('#nBadge'); bd.textContent = unread; bd.classList.toggle('hidden', !unread || view === 'notif'); }
+function setBadge(){
+  const bd = $('#nBadge'); bd.textContent = unread; bd.classList.toggle('hidden', !unread || view === 'notif');
+  const dd = $('#dBadge'); if(dd){ dd.textContent = unreadDM; dd.classList.toggle('hidden', !unreadDM || view === 'dm'); }
+  document.title = (unread ? '(' + unread + ') ' : '') + 'filx';
+}
 
 function render(){
   if(!me) return;
   syncFab();
   document.querySelectorAll('.nav-item').forEach(b => b.classList.toggle('on', b.dataset.view === view && (view !== 'me' || !profileId || profileId === me.id)));
   setBadge();
+  syncTyping();
   const m = $('#main');
   if(view !== 'dm' || !dmWith) chatShown = null;
   if(view === 'home'){
@@ -620,16 +650,33 @@ function postHTML(p){
     ${open ? commentsHTML(p) : ''}
   </div>`;
 }
-function commentsHTML(p){
-  const list = p.comments.map(c => {
-    const a = U(c.uid), liked = c.likes.includes(me.id);
-    const del = c.uid === me.id ? `<button class="act del" onclick="delComment('${p.id}','${c.id}')">削除</button>`
-              : (isAdmin ? `<button class="act del" onclick="delComment('${p.id}','${c.id}')">削除（管理者）</button>` : '');
-    return `<div class="comment"><span class="avatar sm link" style="${avBG(a)}" onclick="openProfile('${a.id}')">${avTxt(a)}</span><span class="who link" onclick="openProfile('${a.id}')">${esc(a.name)}</span><span class="meta">${ago(c.ts)}</span><div class="text" style="margin:2px 0 0">${esc(c.text)}</div><div class="actions c-act"><button class="act ${liked?'liked':''}" onclick="toggleCommentLike('${p.id}','${c.id}')">${liked?'❤️':'🤍'} ${c.likes.length}</button>${del}</div></div>`;
-  }).join('');
-  return `<div class="comments">${list || '<div class="meta" style="margin:0">最初のコメントを書いてみよう</div>'}
-    <div class="cform"><input id="ci-${p.id}" maxlength="100" placeholder="コメントする" onkeydown="if(event.key==='Enter')addComment('${p.id}')"><button onclick="addComment('${p.id}')">送信</button></div></div>`;
+const replyTo = {};                  // 投稿ID → 返信しようとしているコメントID
+function commentHTML(p, c, parentName){
+  const a = U(c.uid), liked = c.likes.includes(me.id);
+  const del = c.uid === me.id ? `<button class="act del" onclick="delComment('${p.id}','${c.id}')">削除</button>`
+            : (isAdmin ? `<button class="act del" onclick="delComment('${p.id}','${c.id}')">削除（管理者）</button>` : '');
+  const to = parentName ? `<div class="replyto">↪ <b>@${esc(parentName)}</b> への返信</div>` : '';
+  return `<div class="comment${parentName ? ' reply' : ''}" id="c-${c.id}"><span class="avatar sm link" style="${avBG(a)}" onclick="openProfile('${a.id}')">${avTxt(a)}</span><span class="who link" onclick="openProfile('${a.id}')">${esc(a.name)}</span><span class="meta">${ago(c.ts)}</span>${to}<div class="text" style="margin:2px 0 0">${esc(c.text)}</div><div class="actions c-act"><button class="act ${liked?'liked':''}" onclick="toggleCommentLike('${p.id}','${c.id}')">${liked?'❤️':'🤍'} ${c.likes.length}</button><button class="act" onclick="startReply('${p.id}','${c.id}')">返信</button>${del}</div></div>`;
 }
+function commentsHTML(p){
+  const byId = {}; p.comments.forEach(c => byId[c.id] = c);
+  const kids = {}; const roots = [];
+  p.comments.forEach(c => { if(c.parent && byId[c.parent]) (kids[c.parent] = kids[c.parent] || []).push(c); else roots.push(c); });
+  const parts = [];
+  roots.forEach(r => {
+    parts.push(commentHTML(p, r, null));
+    const q2 = [...(kids[r.id] || [])], out = [];            // 返信は、元のコメントの下に時間順で並べる
+    while(q2.length){ const c = q2.shift(); out.push(c); (kids[c.id] || []).forEach(k => q2.push(k)); }
+    out.sort((x, y) => x.ts - y.ts).forEach(c => parts.push(commentHTML(p, c, U(byId[c.parent].uid).name)));
+  });
+  const rt = replyTo[p.id] && byId[replyTo[p.id]];
+  if(replyTo[p.id] && !rt) delete replyTo[p.id];
+  const hint = rt ? `<div class="replying">↪ <b>@${esc(U(rt.uid).name)}</b> に返信中 <button onclick="cancelReply('${p.id}')">×</button></div>` : '';
+  return `<div class="comments">${parts.join('') || '<div class="meta" style="margin:0">最初のコメントを書いてみよう</div>'}
+    ${hint}<div class="cform"><input id="ci-${p.id}" maxlength="100" placeholder="${rt ? '返信を書く' : 'コメントする'}" onkeydown="if(event.key==='Enter')addComment('${p.id}')"><button onclick="addComment('${p.id}')">送信</button></div></div>`;
+}
+function startReply(pid, cid){ replyTo[pid] = cid; openComments.add(pid); render(); const el = $('#ci-' + pid); if(el) el.focus(); }
+function cancelReply(pid){ delete replyTo[pid]; render(); }
 const allPosts = () => feed.concat(profile ? profile.posts : []);
 async function toggleLike(id){
   const was = (allPosts().find(x => x.id === id) || { likes: [] }).likes.includes(me.id);
@@ -655,7 +702,8 @@ async function toggleCommentLike(pid, cid){
 /* 自分のコメント、または管理者なら誰のコメントでも削除できる */
 async function delComment(pid, cid){
   const c = findComment(pid, cid); if(!c) return;
-  if(!confirm(c.uid === me.id ? 'このコメントを削除しますか？' : '管理者として、このコメントを削除しますか？')) return;
+  const hasKids = allPosts().some(p => p.id === pid && p.comments.some(x => x.parent === cid));
+  if(!confirm((c.uid === me.id ? 'このコメントを削除しますか？' : '管理者として、このコメントを削除しますか？') + (hasKids ? '\nこのコメントへの返信も一緒に消えます。' : ''))) return;
   try{
     const rows = await q(sb.from('comments').delete().eq('id', cid).select('id'));
     if(!rows.length) throw new Error('削除できませんでした');
@@ -666,7 +714,8 @@ async function addComment(id){
   const inp = $('#ci-'+id), text = inp.value.trim(); if(!text) return;
   inp.disabled = true;
   try{
-    await q(sb.from('comments').insert({ post_id: id, user_id: me.id, text }));
+    await q(sb.from('comments').insert({ post_id: id, user_id: me.id, text, parent_id: replyTo[id] || null }));
+    delete replyTo[id];
     await refresh(true);
   }catch(e){ toast(fail(e)); inp.disabled = false; return; }
   const el = $('#ci-'+id); if(el) el.focus();
@@ -695,6 +744,14 @@ function notifHTML(){
     if(n.type === 'follow'){
       return `<div class="${cls}" style="cursor:pointer" onclick="openProfile('${a.id}')">${av}
         <div style="min-width:0"><b>${esc(a.name)}</b>があなたをフォローしました<br><span class="meta" style="margin:0">${ago(Date.parse(n.created_at))}</span></div></div>`;
+    }
+    if(n.type === 'dm'){
+      return `<div class="${cls}" style="cursor:pointer" onclick="openChat('${a.id}')">${av}
+        <div style="min-width:0"><b>${esc(a.name)}</b>からメッセージが届きました<br><span style="word-break:break-word">${esc(n.text || '')}</span><br><span class="meta" style="margin:0">${ago(Date.parse(n.created_at))}</span></div></div>`;
+    }
+    if(n.type === 'reply'){
+      return `<div class="${cls}" style="cursor:pointer" onclick="goPost('${n.post_id}')">${av}
+        <div style="min-width:0"><b>${esc(a.name)}</b>があなたのコメントに返信しました<br><span style="word-break:break-word">${esc(n.text || '')}</span><br><span class="meta" style="margin:0">${ago(Date.parse(n.created_at))}</span></div></div>`;
     }
     const txt = n.post ? (n.post.text || (n.post.image_path ? '（画像）' : '')) : null;
     const prev = txt === null ? '削除された投稿' : esc(txt.slice(0,30)) + (txt.length > 30 ? '…' : '');
@@ -726,22 +783,88 @@ async function startDM(){
     openChat(rows[0].id);
   }catch(e){ toast(fail(e)); }
 }
-function openChat(id){ dropImg('dm'); view = 'dm'; dmWith = id; chat = null; go(); window.scrollTo(0,0); }
-function closeChat(){ dropImg('dm'); dmWith = null; go(); }
+function openChat(id){ dropImg('dm'); dmReply = null; view = 'dm'; dmWith = id; chat = null; go(); window.scrollTo(0,0); }
+function closeChat(){ dropImg('dm'); dmReply = null; dmWith = null; go(); }
+const msgPreview = m => m ? (m.text ? m.text.slice(0, 40) : '（画像）') : '';
 const bubbles = () => chat.messages.map(d => {
   const im = d.image ? imgTag(d.image, 'dimg') : '';
-  return `<div class="bubble ${d.mine?'me':'you'}${d.image?' has-img':''}">${im}${d.text ? `<div class="t">${esc(d.text)}</div>` : ''}</div>`;
+  const src = d.reply ? chat.messages.find(x => x.id === d.reply) : null;
+  const quote = d.reply ? `<div class="quote" ${src ? `onclick="jumpMsg('${src.id}')"` : ''}><b>${src ? (src.mine ? 'あなた' : esc(chat.user.name)) : ''}</b> ${src ? esc(msgPreview(src)) : '元のメッセージ'}</div>` : '';
+  return `<div class="msg ${d.mine?'me':'you'}" id="m-${d.id}">${quote}<div class="bubble ${d.mine?'me':'you'}${d.image?' has-img':''}">${im}${d.text ? `<div class="t">${esc(d.text)}</div>` : ''}</div>
+    <div class="mmeta">${d.mine && d.read ? '既読 ・ ' : ''}${ago(d.ts)} ・ <button class="rbtn" onclick="startDmReply('${d.id}')">返信</button></div></div>`;
 }).join('') || '<div class="empty">メッセージを送ってみよう</div>';
+function jumpMsg(id){ const e = $('#m-' + id); if(e){ e.scrollIntoView({ block:'center' }); e.classList.add('flash'); setTimeout(() => e.classList.remove('flash'), 1200); } }
+
+/* 返信（どのメッセージへの返信かを、入力欄の上に出す） */
+let dmReply = null;
+function updateDmReply(){
+  const el = $('#dmRep'); if(!el) return;
+  const src = dmReply && chat ? chat.messages.find(x => x.id === dmReply) : null;
+  if(dmReply && !src) dmReply = null;
+  el.classList.toggle('hidden', !src);
+  el.innerHTML = src ? `↪ <b>${src.mine ? 'あなた' : esc(chat.user.name)}</b> のメッセージに返信中：${esc(msgPreview(src))} <button onclick="cancelDmReply()">×</button>` : '';
+}
+function startDmReply(id){ dmReply = id; updateDmReply(); const i = $('#dmText'); if(i) i.focus(); }
+function cancelDmReply(){ dmReply = null; updateDmReply(); }
+
+/* 既読（開いているチャットの、相手からの未読メッセージを既読にする） */
+let markingRead = false;
+async function markRead(dw){
+  if(markingRead || document.hidden || view !== 'dm' || dmWith !== dw || !chat) return;
+  if(!chat.messages.some(m => !m.mine && !m.read)) return;
+  markingRead = true;
+  try{ await sb.from('dms').update({ read_at: new Date().toISOString() }).eq('to_user', me.id).eq('from_user', dw).is('read_at', null); 
+    await sb.from('notifications').update({ read:true }).eq('read', false).eq('type', 'dm').eq('from_user', dw);
+    pollSummary();
+  }catch(e){}
+  markingRead = false;
+}
+
+/* 入力中の表示（文字そのものは送らず、「いま打っている」という合図だけを相手に届ける） */
+let typingCh = null, typingKey = '', typingUntil = 0, typingTimer = null, lastTypingSent = 0;
+function syncTyping(){
+  const want = (view === 'dm' && dmWith && me) ? [me.id, dmWith].sort().join('_') : '';
+  if(want === typingKey) return;
+  if(typingCh){ try{ sb.removeChannel(typingCh); }catch(e){} typingCh = null; }
+  typingKey = want; typingUntil = 0; lastTypingSent = 0;
+  if(!want || !sb.channel) return;
+  try{
+    const peer = dmWith;
+    typingCh = sb.channel('typing:' + want, { config:{ broadcast:{ self:false } } });
+    typingCh.on('broadcast', { event:'typing' }, msg => {
+      if(msg && msg.payload && msg.payload.from === peer){ typingUntil = Date.now() + 4000; updateTyping(); }
+    }).subscribe();
+  }catch(e){ typingCh = null; }
+}
+function updateTyping(){
+  const el = $('#typing'); if(!el) return;
+  const on = Date.now() < typingUntil;
+  el.classList.toggle('hidden', !on);
+  el.textContent = on ? (chat ? chat.user.name : '') + 'さんが入力中…' : '';
+  clearTimeout(typingTimer);
+  if(on) typingTimer = setTimeout(updateTyping, Math.max(200, typingUntil - Date.now() + 50));
+}
+function sendTyping(){
+  const now = Date.now();
+  if(!typingCh || now - lastTypingSent < 2000) return;
+  const v = $('#dmText'); if(!v || !v.value) return;
+  lastTypingSent = now;
+  try{ typingCh.send({ type:'broadcast', event:'typing', payload:{ from: me.id } }); }catch(e){}
+}
+
 function renderChat(m){
   const u = chat.user;
   m.innerHTML = `<div class="head"><button class="back" onclick="closeChat()">←</button><span class="who link" onclick="openProfile('${u.id}')">${esc(u.name)}</span></div>
     <div class="chat" id="chatBody">${bubbles()}</div>
+    <div class="typing hidden" id="typing"></div>
     <div class="chat-bar">
+      <div class="replying hidden" id="dmRep" style="padding:8px 20px 0"></div>
       <div class="pv hidden" id="pv-dm"></div>
-      <div class="chat-form"><label class="small-btn">画像<input type="file" accept="image/*" hidden id="f-dm"></label><input id="dmText" maxlength="300" placeholder="メッセージ" onkeydown="if(event.key==='Enter')sendDM()"><button onclick="sendDM()">送信</button></div>
+      <div class="chat-form"><label class="small-btn">画像<input type="file" accept="image/*" hidden id="f-dm"></label><input id="dmText" maxlength="300" placeholder="メッセージ" oninput="sendTyping()" onkeydown="if(event.key==='Enter')sendDM()"><button onclick="sendDM()">送信</button></div>
     </div>`;
   bindFile('dm');
   chatShown = u.id;
+  updateDmReply(); updateTyping();
   window.scrollTo(0, document.body.scrollHeight);
 }
 async function sendDM(){
@@ -751,9 +874,10 @@ async function sendDM(){
   let path = null;
   try{
     if(c) path = await uploadImg(c.blob);
-    await q(sb.from('dms').insert({ from_user: me.id, to_user: dmWith, text, image_path: path }));
-    dropImg('dm');
+    await q(sb.from('dms').insert({ from_user: me.id, to_user: dmWith, text, image_path: path, reply_to: dmReply || null }));
+    dropImg('dm'); dmReply = null;
     await refresh(true);
+    updateDmReply();
     window.scrollTo(0, document.body.scrollHeight);
   }catch(e){ if(path) rmImg(path); const i2 = $('#dmText'); if(i2) i2.value = text; toast(fail(e)); }
   const i3 = $('#dmText'); if(i3) i3.focus();
@@ -870,7 +994,7 @@ function renderProfile(m){
       </div>
       ${own ? `<div class="btn-row" style="justify-content:center"><button class="btn inline" onclick="startEdit()">プロフィールを編集</button></div><button class="logout" onclick="logout()">ログアウト</button>`
             : `<div class="btn-row" style="justify-content:center;flex-wrap:wrap">
-                 <button class="btn inline ${profile.followed?'following':''}" onclick="toggleFollow('${u.id}')">${profile.followed ? 'フォロー中' : 'フォローする'}</button>
+                 <button class="btn inline ${profile.followed?'following':''}" onclick="toggleFollow('${u.id}')">${profile.followed ? 'フォロー中（タップで解除）' : 'フォローする'}</button>
                  <button class="btn inline" onclick="openChat('${u.id}')">DMを送信</button>
                </div>
                ${isAdmin ? `<div><button class="btn inline ghost-danger" onclick="adminDeleteUser('${u.id}')">このアカウントを削除（管理者）</button></div>` : ''}`}
@@ -882,13 +1006,19 @@ function renderProfile(m){
 
 /* ========== 自動更新（新しい通知・投稿・DMを数秒ごとに取り込む） ========== */
 async function pollSummary(){
-  if(!me || document.hidden) return;
+  if(!me) return;
   try{
-    const r = await sb.from('notifications').select('id', { count:'exact', head:true }).eq('read', false);
+    const [r, r2] = await Promise.all([
+      sb.from('notifications').select('id', { count:'exact', head:true }).eq('read', false),
+      sb.from('notifications').select('id', { count:'exact', head:true }).eq('read', false).eq('type', 'dm')
+    ]);
     if(r.error) throw r.error;
-    const n = r.count || 0;
-    if(n > unread && view !== 'notif') toast('新しい通知があります');
-    unread = n; setBadge();
+    const n = r.count || 0, d = r2.error ? 0 : (r2.count || 0);
+    if(!document.hidden){
+      if(d > unreadDM && !(view === 'dm' && dmWith)) toast('新しいメッセージが届きました');
+      else if(n > unread && view !== 'notif' && !(view === 'dm' && dmWith)) toast('新しい通知があります');
+    }
+    unread = n; unreadDM = d; setBadge();
   }catch(e){}
 }
 const isBusy = () => {
@@ -897,8 +1027,10 @@ const isBusy = () => {
   if(ae && (ae.tagName === 'INPUT' || ae.tagName === 'TEXTAREA')) return true;
   return [...document.querySelectorAll('#main input[type=text],#main input:not([type]),#main textarea')].some(x => x.value);
 };
+let hiddenTick = 0;
 setInterval(() => {
-  if(!me || document.hidden) return;
+  if(!me) return;
+  if(document.hidden){ if(++hiddenTick % 3 === 0) pollSummary(); return; }   // 別タブにいる間は15秒ごとに件数だけ確認（タブの題名に出る）
   pollSummary();
   if(view === 'dm' && dmWith) refresh(true);     // チャットは入力中でも新着だけ差し込む
   else if(!isBusy()) refresh(true);
