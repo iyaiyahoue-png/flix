@@ -181,6 +181,7 @@ aside{flex:1;padding:20px;min-width:0}
 .lbn{position:fixed;top:50%;transform:translateY(-50%);width:44px;height:44px;border-radius:50%;border:none;background:rgba(0,0,0,.6);color:#fff;font-size:28px;line-height:1}
 .lbn.l{left:12px}.lbn.r{right:12px}
 .lbc{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);color:#fff;font-size:13px;background:rgba(0,0,0,.6);padding:3px 12px;border-radius:12px}
+.act.static{cursor:default}.act.static:hover{color:var(--sub)}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.112.3/dist/umd/supabase.js"></script>
 </head>
@@ -201,7 +202,7 @@ aside{flex:1;padding:20px;min-width:0}
       <div class="err" id="aErr"></div>
       <button class="btn" id="aBtn">ログイン</button>
     </form>
-    <p class="note">※ メールアドレスに「fzk」を含む人だけ登録できます。</p>
+    <p class="note">※ メールアドレスに「fzk」を含む人だけ登録できます。<br>※ 投稿を見た人は、投稿した人に表示されます。</p>
   </div>
 </div>
 
@@ -296,11 +297,11 @@ async function ensureProfiles(ids){
   rows.forEach(p => PROF[p.id] = Object.assign({}, p, { t: now }));
 }
 const normPost = p => ({
-  id: p.id, text: p.text, images: p.image_paths || [], ts: Date.parse(p.created_at), uid: p.user_id,
+  id: p.id, text: p.text, images: p.image_paths || [], views: p.impressions || 0, ts: Date.parse(p.created_at), uid: p.user_id,
   likes: (p.likes || []).map(l => l.user_id),
   comments: (p.comments || []).map(c => ({ id:c.id, text:c.text, ts:Date.parse(c.created_at), uid:c.user_id, parent:c.parent_id || null, likes:(c.comment_likes || []).map(l => l.user_id) })).sort((a,b)=>a.ts-b.ts)
 });
-const PSEL = 'id,text,image_paths,created_at,user_id,likes(user_id),comments(id,text,created_at,user_id,parent_id,comment_likes(user_id))';
+const PSEL = 'id,text,image_paths,impressions,created_at,user_id,likes(user_id),comments(id,text,created_at,user_id,parent_id,comment_likes(user_id))';
 
 /* ========== 画像（非公開の置き場所に保存し、見るときだけ期限つきのURLを発行） ========== */
 const signed = {};                   // 保存場所 → {url, exp}
@@ -468,6 +469,7 @@ async function loadMe(){
 }
 
 async function doLogout(silent){
+  impSeen.clear(); impQueue.clear(); Object.keys(impTimers).forEach(k => { clearTimeout(impTimers[k]); delete impTimers[k]; });
   try{ if(typingCh){ sb.removeChannel(typingCh); } }catch(e){} typingCh = null; typingKey = ''; dmReply = null;
   me = null; isAdmin = false; feed = []; profile = null; notifs = []; convs = []; chat = null; unread = 0; unreadDM = 0; editing = false;
   Object.keys(cimg).forEach(dropImg);
@@ -625,6 +627,7 @@ function render(){
     if(e) e.scrollIntoView({ block:'center' }); else toast('この投稿は見つかりませんでした');
     pendingScroll = null;
   }
+  observePosts();
 }
 
 /* ========== 投稿フォーム ========== */
@@ -674,7 +677,7 @@ function feedHTML(list){
 function postHTML(p){
   const a = U(p.uid), open = openComments.has(p.id), mine = p.uid === me.id;
   const liked = p.likes.includes(me.id);
-  return `<div class="post" id="p-${p.id}">
+  return `<div class="post" id="p-${p.id}" data-pid="${p.id}" data-mine="${mine ? 1 : 0}">
     <div class="post-top">
       <div class="avatar link" style="${avBG(a)}" onclick="openProfile('${a.id}')">${avTxt(a)}</div>
       <div class="post-body">
@@ -684,6 +687,7 @@ function postHTML(p){
         <div class="actions">
           <button class="act ${liked?'liked':''}" onclick="toggleLike('${p.id}')">${liked?'❤️':'🤍'} ${p.likes.length}</button>
           <button class="act" onclick="toggleComments('${p.id}')">💬 ${p.comments.length}</button>
+          ${mine || isAdmin ? `<button class="act" onclick="showViewers('${p.id}')" title="見た人を見る">👁 ${p.views}</button>` : `<span class="act static" title="表示された回数">👁 ${p.views}</span>`}
           ${mine ? `<button class="act del" onclick="delPost('${p.id}')">🗑 削除</button>`
                  : (isAdmin ? `<button class="act del" onclick="delPost('${p.id}')">🗑 削除（管理者）</button>` : '')}
         </div>
@@ -729,6 +733,42 @@ async function toggleLike(id){
     else await q(sb.from('likes').insert({ post_id: id, user_id: me.id }));
   }catch(e){ toast(fail(e)); refresh(true); }
 }
+/* ========== インプレッション（画面に半分以上、1秒以上表示された他人の投稿を数える） ========== */
+const impSeen = new Set(), impQueue = new Set(), impTimers = {};
+let impObs = null;
+function observePosts(){
+  if(!me || !window.IntersectionObserver) return;
+  if(!impObs) impObs = new IntersectionObserver(es => es.forEach(en => {
+    const pid = en.target.dataset.pid; if(!pid) return;
+    if(en.isIntersecting && en.intersectionRatio >= 0.5){
+      if(impSeen.has(pid) || impTimers[pid]) return;
+      impTimers[pid] = setTimeout(() => { delete impTimers[pid]; if(!document.hidden && !impSeen.has(pid)){ impSeen.add(pid); impQueue.add(pid); } }, 1000);
+    } else if(impTimers[pid]){ clearTimeout(impTimers[pid]); delete impTimers[pid]; }
+  }), { threshold: [0, 0.5, 1] });
+  impObs.disconnect();
+  Object.keys(impTimers).forEach(k => { clearTimeout(impTimers[k]); delete impTimers[k]; });
+  document.querySelectorAll('#main .post[data-pid]').forEach(el => { if(el.dataset.mine !== '1' && !impSeen.has(el.dataset.pid)) impObs.observe(el); });
+}
+async function flushImpressions(){
+  if(!me || !impQueue.size) return;
+  const ids = [...impQueue].slice(0, 30); ids.forEach(i => impQueue.delete(i));
+  try{ const r = await sb.rpc('record_impressions', { ids }); if(r.error) throw r.error; }
+  catch(e){ ids.forEach(i => impSeen.delete(i)); }          // 失敗したら、あとでもう一度数える
+}
+setInterval(flushImpressions, 4000);
+document.addEventListener('visibilitychange', () => { if(document.hidden) flushImpressions(); });
+
+/* 誰が見たか（投稿した人と管理者だけ） */
+async function showViewers(pid){
+  try{
+    const rows = await q(sb.rpc('post_viewers', { pid }));
+    await ensureProfiles(rows.map(r => r.user_id));
+    const items = rows.map(r => { const u = U(r.user_id); return `<div class="conv" onclick="openProfile('${u.id}')"><div class="avatar" style="${avBG(u)}">${avTxt(u)}</div><div style="min-width:0"><b>${esc(u.name)}</b><br><span class="meta" style="margin:0">${ago(Date.parse(r.last_at))}に見ました</span></div></div>`; }).join('');
+    $('#modalHost').innerHTML = `<div class="modal-bg" id="mbg"><div class="modal"><div class="head" style="position:static">見た人（${rows.length}人）</div><div class="ulist">${items || '<div class="empty">まだ誰も見ていません</div>'}</div><div class="meta" style="padding:8px 20px 14px;margin:0">同じ人が何度見ても、1人として表示されます</div></div></div>`;
+    $('#mbg').onclick = e => { if(e.target.id === 'mbg') closeModal(); };
+  }catch(e){ toast(fail(e)); }
+}
+
 function toggleComments(id){ openComments.has(id) ? openComments.delete(id) : openComments.add(id); render(); }
 const findComment = (pid, cid) => { for(const p of allPosts()){ if(p.id !== pid) continue; const c = p.comments.find(x => x.id === cid); if(c) return c; } return null; };
 async function toggleCommentLike(pid, cid){
