@@ -182,6 +182,9 @@ aside{flex:1;padding:20px;min-width:0}
 .lbn.l{left:12px}.lbn.r{right:12px}
 .lbc{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);color:#fff;font-size:13px;background:rgba(0,0,0,.6);padding:3px 12px;border-radius:12px}
 .act.static{cursor:default}.act.static:hover{color:var(--sub)}
+.more{padding:16px;text-align:center}
+.more .btn{width:auto;padding:10px 26px;background:var(--bg);color:var(--text);border:1px solid var(--line)}
+.more.end{color:var(--sub);font-size:12px}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.112.3/dist/umd/supabase.js"></script>
 </head>
@@ -284,6 +287,8 @@ let me = null;                       // {id, email, name, bio, avatar}
 let isAdmin = false;                 // 管理者か（画面の表示用。本当の判定はデータベース側）
 const PROF = {};                     // ユーザー情報のキャッシュ
 let view = 'home', homeTab = 'all', profileId = null, editing = false, pendingAvatar, dmWith = null;
+const PAGE = 10;                       // タイムラインは10件ずつ読み込む
+let feedMoreNext = false, feedLimit = PAGE, feedMore = false, feedCtx = '', profLimit = PAGE, profMore = false, profCtx = '', loadingMore = false;
 let feed = [], myFollowing = new Set(), profile = null, notifs = [], convs = [], chat = null, chatShown = null;
 let unread = 0, unreadDM = 0, pendingScroll = null;
 const openComments = new Set();
@@ -297,7 +302,7 @@ async function ensureProfiles(ids){
   rows.forEach(p => PROF[p.id] = Object.assign({}, p, { t: now }));
 }
 const normPost = p => ({
-  id: p.id, text: p.text, images: p.image_paths || [], views: p.impressions || 0, ts: Date.parse(p.created_at), uid: p.user_id,
+  id: p.id, text: p.text, images: p.image_paths || [], views: p.impressions || 0, cat: p.created_at, ts: Date.parse(p.created_at), uid: p.user_id,
   likes: (p.likes || []).map(l => l.user_id),
   comments: (p.comments || []).map(c => ({ id:c.id, text:c.text, ts:Date.parse(c.created_at), uid:c.user_id, parent:c.parent_id || null, likes:(c.comment_likes || []).map(l => l.user_id) })).sort((a,b)=>a.ts-b.ts)
 });
@@ -494,7 +499,7 @@ function start(){
 
 /* ========== ナビ ========== */
 document.querySelectorAll('.nav-item').forEach(b => b.onclick = () => {
-  view = b.dataset.view; dmWith = null; profileId = me.id; editing = false; go(); window.scrollTo(0,0);
+  view = b.dataset.view; dmWith = null; profileId = me.id; editing = false; feedCtx = ''; profCtx = ''; go(); window.scrollTo(0,0);
 });
 $('#openCompose').onclick = openComposeModal;
 $('#fab').onclick = openComposeModal;
@@ -505,7 +510,7 @@ const TITLES = { home:'ホーム', notif:'通知', dm:'DM', me:'プロフィー�
 const headHTML = t => `<div class="head">${t}</div>`;
 const homeTop = () => headHTML('ホーム') +
   `<div class="subtabs"><button class="${homeTab==='all'?'on':''}" onclick="setTab('all')">すべて</button><button class="${homeTab==='following'?'on':''}" onclick="setTab('following')">フォロー中</button></div>`;
-function setTab(t){ if(homeTab === t) return; homeTab = t; feed = []; go(); }
+function setTab(t){ if(homeTab === t) return; homeTab = t; feed = []; feedCtx = ''; go(); }
 
 /* 画面を切り替える：読み込み中表示 → データ取得 → 描画 */
 function go(){
@@ -522,26 +527,33 @@ async function refresh(silent){
   try{
     if(v === 'home'){
       let rows;
+      if(feedCtx !== 'home:' + tab){ feedCtx = 'home:' + tab; feedLimit = PAGE; }
+      const lim = feedLimit;
       if(tab === 'following'){
         const f = await q(sb.from('follows').select('following_id').eq('follower_id', me.id));
         myFollowing = new Set(f.map(x => x.following_id));
-        rows = await q(sb.from('posts').select(PSEL).in('user_id', [me.id, ...myFollowing]).order('created_at', { ascending:false }).limit(100));
+        rows = await q(sb.from('posts').select(PSEL).in('user_id', [me.id, ...myFollowing]).order('created_at', { ascending:false }).limit(lim));
       } else {
-        rows = await q(sb.from('posts').select(PSEL).order('created_at', { ascending:false }).limit(100));
+        rows = await q(sb.from('posts').select(PSEL).order('created_at', { ascending:false }).limit(lim));
       }
+      feedMoreNext = rows.length >= lim;
       const list = rows.map(normPost);
       await ensureProfiles(list.flatMap(p => [p.uid, ...p.comments.map(c => c.uid)]));
       await trySign(list.flatMap(p => p.images));
       if(view !== v || homeTab !== tab || !me) return;
-      feed = list;
+      feed = list; feedMore = feedMoreNext;
     }
     else if(v === 'me'){
       const id = pid || me.id;
-      const [rows, fers, fing, fol] = await Promise.all([
-        q(sb.from('posts').select(PSEL).eq('user_id', id).order('created_at', { ascending:false }).limit(100)),
+      if(profCtx !== 'me:' + id){ profCtx = 'me:' + id; profLimit = PAGE; }
+      const plim = profLimit;
+      const [rows, fers, fing, fol, npost, nlike] = await Promise.all([
+        q(sb.from('posts').select(PSEL).eq('user_id', id).order('created_at', { ascending:false }).limit(plim)),
         cnt(sb.from('follows').select('follower_id', { count:'exact', head:true }).eq('following_id', id)),
         cnt(sb.from('follows').select('following_id', { count:'exact', head:true }).eq('follower_id', id)),
-        id === me.id ? Promise.resolve(null) : q(sb.from('follows').select('following_id').eq('follower_id', me.id).eq('following_id', id).maybeSingle())
+        id === me.id ? Promise.resolve(null) : q(sb.from('follows').select('following_id').eq('follower_id', me.id).eq('following_id', id).maybeSingle()),
+        cnt(sb.from('posts').select('id', { count:'exact', head:true }).eq('user_id', id)),
+        cnt(sb.from('likes').select('post_id,posts!inner(user_id)', { count:'exact', head:true }).eq('posts.user_id', id)).catch(() => -1)
       ]);
       PROF[id] && (PROF[id].t = 0);                 // プロフィールは毎回最新を取る
       await ensureProfiles([id]);
@@ -550,7 +562,8 @@ async function refresh(silent){
       await trySign(list.flatMap(p => p.images));
       if(view !== v || profileId !== pid || !me) return;
       if(!PROF[id]) throw new Error('ユーザーが見つかりません');
-      profile = { user: PROF[id], own: id === me.id, posts: list, likes: list.reduce((s,p) => s + p.likes.length, 0), followers: fers, following: fing, followed: !!fol };
+      profile = { user: PROF[id], own: id === me.id, posts: list, nposts: npost, likes: nlike >= 0 ? nlike : list.reduce((s,p) => s + p.likes.length, 0), followers: fers, following: fing, followed: !!fol };
+      profMore = rows.length >= plim;
     }
     else if(v === 'notif'){
       const rows = await q(sb.from('notifications').select('id,type,post_id,text,read,created_at,from_user,post:posts(text,image_paths)').order('created_at', { ascending:false }).limit(100));
@@ -615,7 +628,7 @@ function render(){
     const old = $('#t-main'), keep = old ? old.value : '';        // 書きかけの文章は消さない
     const none = homeTab === 'following' && myFollowing.size === 0;
     m.innerHTML = homeTop() + composeHTML('main') +
-      (none ? '<div class="empty">まだ誰もフォローしていません<br>投稿のアイコンからプロフィールを開いて、フォローしてみよう</div>' : feedHTML(feed));
+      (none ? '<div class="empty">まだ誰もフォローしていません<br>投稿のアイコンからプロフィールを開いて、フォローしてみよう</div>' : feedHTML(feed, feedMore));
     bindCompose('main');
     if(keep){ $('#t-main').value = keep; $('#n-main').textContent = keep.length + '/200'; }
   }
@@ -627,7 +640,7 @@ function render(){
     if(e) e.scrollIntoView({ block:'center' }); else toast('この投稿は見つかりませんでした');
     pendingScroll = null;
   }
-  observePosts();
+  observePosts(); observeMore();
 }
 
 /* ========== 投稿フォーム ========== */
@@ -670,9 +683,44 @@ function closeModal(){ dropImg('m'); lbState = null; $('#modalHost').innerHTML =
 document.addEventListener('keydown', e => { if(e.key === 'Escape' && $('#modalHost').innerHTML) closeModal(); });
 
 /* ========== フィード ========== */
-function feedHTML(list){
+function feedHTML(list, more){
   if(!list.length) return `<div class="empty">まだ投稿がありません</div>`;
-  return list.map(postHTML).join('');
+  return list.map(postHTML).join('') + (more ? `<div class="more" id="moreSentinel"><button class="btn ghost" onclick="loadMore()">${loadingMore ? '読み込み中…' : 'もっと見る'}</button></div>` : '<div class="more end">ここまでです</div>');
+}
+/* 下までスクロールしたら、次の10件を読み込む */
+async function loadMore(){
+  if(loadingMore || !me) return;
+  const v = view, tab = homeTab, pid = profileId;
+  const isHome = v === 'home', isProf = v === 'me';
+  if(!isHome && !isProf) return;
+  const base = isHome ? feed : (profile ? profile.posts : []);
+  if(!base.length) return;
+  loadingMore = true; const b = $('#moreSentinel button'); if(b) b.textContent = '読み込み中…';
+  try{
+    const before = base[base.length - 1].cat;
+    let qy = sb.from('posts').select(PSEL);
+    if(isHome){
+      if(tab === 'following') qy = qy.in('user_id', [me.id, ...myFollowing]);
+    } else qy = qy.eq('user_id', pid || me.id);
+    const rows = await q(qy.lt('created_at', before).order('created_at', { ascending:false }).limit(PAGE));
+    const list = rows.map(normPost);
+    await ensureProfiles(list.flatMap(p => [p.uid, ...p.comments.map(c => c.uid)]));
+    await trySign(list.flatMap(p => p.images));
+    if(view !== v || homeTab !== tab || profileId !== pid || !me) return;
+    const target = isHome ? feed : profile.posts;
+    const have = new Set(target.map(p => p.id));
+    list.forEach(p => { if(!have.has(p.id)) target.push(p); });
+    if(isHome){ feedLimit = target.length; feedMore = rows.length >= PAGE; }
+    else { profLimit = target.length; profMore = rows.length >= PAGE; }
+  }catch(e){ toast(fail(e)); }
+  finally{ loadingMore = false; }
+  render();
+}
+let moreObs = null;
+function observeMore(){
+  const el = $('#moreSentinel'); if(!el || !window.IntersectionObserver) return;
+  if(!moreObs) moreObs = new IntersectionObserver(es => { if(es.some(e => e.isIntersecting)) loadMore(); }, { rootMargin: '500px' });
+  moreObs.disconnect(); moreObs.observe(el);
 }
 function postHTML(p){
   const a = U(p.uid), open = openComments.has(p.id), mine = p.uid === me.id;
@@ -1069,7 +1117,7 @@ function renderProfile(m){
       ${own ? `<p>${esc(me.email || '')}</p>` : ''}
       <p class="bio">${u.bio ? esc(u.bio) : (own ? '<span style="color:var(--sub)">ステータスメッセージはまだありません</span>' : '')}</p>
       <div class="stats">
-        <span><b>${profile.posts.length}</b> 投稿</span>
+        <span><b>${profile.nposts}</b> 投稿</span>
         <span class="lk" onclick="showFollows('${u.id}','following')"><b>${profile.following}</b> フォロー中</span>
         <span class="lk" onclick="showFollows('${u.id}','followers')"><b>${profile.followers}</b> フォロワー</span>
         <span><b>${profile.likes}</b> いいね</span>
@@ -1083,7 +1131,7 @@ function renderProfile(m){
     </div>`;
   }
   m.innerHTML = headHTML(own ? 'プロフィール' : esc(u.name)) + top +
-    `<div class="head" style="position:static;font-size:15px">${own ? '自分の投稿' : '投稿'}</div>` + feedHTML(profile.posts);
+    `<div class="head" style="position:static;font-size:15px">${own ? '自分の投稿' : '投稿'}</div>` + feedHTML(profile.posts, profMore);
 }
 
 /* ========== 自動更新（新しい通知・投稿・DMを数秒ごとに取り込む） ========== */
