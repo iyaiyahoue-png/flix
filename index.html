@@ -520,7 +520,7 @@ function syncFab(){ $('#fab').classList.toggle('hidden', !me || view !== 'home')
 
 const TITLES = { home:'ホーム', notif:'通知', dm:'DM', me:'プロフィール' };
 const headHTML = t => `<div class="head">${t}</div>`;
-const homeTop = () => headHTML('ホーム') +
+const homeTop = () => headHTML('ホーム') + `<div id="onlineBox"></div>` +
   `<div class="subtabs"><button class="${homeTab==='all'?'on':''}" onclick="setTab('all')">すべて</button><button class="${homeTab==='following'?'on':''}" onclick="setTab('following')">フォロー中</button></div>`;
 function setTab(t){ if(homeTab === t) return; homeTab = t; feed = []; feedCtx = ''; go(); }
 
@@ -1247,6 +1247,4 @@ let sbProblem = '';
   }
 })();
 
-</script>
-</body>
-</html>
+</script></body></html>
