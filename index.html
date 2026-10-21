@@ -146,6 +146,7 @@ aside{flex:1;padding:20px;min-width:0}
 .stats .lk{cursor:pointer}
 .btn.following{background:var(--bg);color:var(--text);border:1px solid var(--line)}
 .btn.danger{background:var(--red);color:#fff}
+.pinlab{font-size:12px;color:var(--sub);margin:0 0 4px}
 .btn.ghost-danger{background:none;border:1px solid var(--red);color:var(--red)}
 .ulist{padding:6px 0;max-height:60vh;overflow:auto}
 .chat-bar{position:sticky;bottom:0;background:var(--card);border-top:1px solid var(--line)}
@@ -299,6 +300,7 @@ const PROF = {};                     // ユーザー情報のキャッシュ
 let view = 'home', homeTab = 'all', profileId = null, editing = false, pendingAvatar, dmWith = null;
 const PAGE = 10;                       // タイムラインは10件ずつ読み込む
 let feedMoreNext = false, feedLimit = PAGE, feedMore = false, feedCtx = '', profLimit = PAGE, profMore = false, profCtx = '', loadingMore = false;
+let myBlocks = new Set();            // 自分がブロックしている人
 let feed = [], myFollowing = new Set(), profile = null, notifs = [], convs = [], chat = null, chatShown = null;
 let unread = 0, unreadDM = 0, pendingScroll = null;
 const openComments = new Set();
@@ -476,18 +478,19 @@ async function loadMe(){
   const { data } = await sb.auth.getSession();
   const user = data.session && data.session.user;
   if(!user) throw new Error('ログインできませんでした');
-  const p = await q(sb.from('profiles').select('id,name,bio,avatar').eq('id', user.id).maybeSingle());
+  const p = await q(sb.from('profiles').select('id,name,bio,avatar,pinned_post_id').eq('id', user.id).maybeSingle());
   if(!p) throw new Error('プロフィールが見つかりません');
   me = Object.assign({}, p, { email: user.email });
   PROF[me.id] = Object.assign({}, p, { t: Date.now() });
   try{ const r = await sb.rpc('is_admin'); isAdmin = r.data === true; }catch(e){ isAdmin = false; }
+  try{ myBlocks = new Set((await q(sb.from('blocks').select('blocked'))).map(r => r.blocked)); }catch(e){ myBlocks = new Set(); }
 }
 
 async function doLogout(silent){
   stopPresence();
   impSeen.clear(); impQueue.clear(); Object.keys(impTimers).forEach(k => { clearTimeout(impTimers[k]); delete impTimers[k]; });
   try{ if(typingCh){ sb.removeChannel(typingCh); } }catch(e){} typingCh = null; typingKey = ''; dmReply = null;
-  me = null; isAdmin = false; feed = []; profile = null; notifs = []; convs = []; chat = null; unread = 0; unreadDM = 0; editing = false;
+  me = null; isAdmin = false; myBlocks = new Set(); feed = []; profile = null; notifs = []; convs = []; chat = null; unread = 0; unreadDM = 0; editing = false;
   Object.keys(cimg).forEach(dropImg);
   if(!silent && sb){ try{ await sb.auth.signOut({ scope: 'local' }); }catch(e){} }
   $('#app').classList.add('hidden'); $('#fab').classList.add('hidden'); $('#modalHost').innerHTML = '';
@@ -559,22 +562,32 @@ async function refresh(silent){
       const id = pid || me.id;
       if(profCtx !== 'me:' + id){ profCtx = 'me:' + id; profLimit = PAGE; }
       const plim = profLimit;
-      const [rows, fers, fing, fol, npost, nlike] = await Promise.all([
+      const [rows, fers, fing, fol, npost, nlike, pinRow, blkRows] = await Promise.all([
         q(sb.from('posts').select(PSEL).eq('user_id', id).order('created_at', { ascending:false }).limit(plim)),
         cnt(sb.from('follows').select('follower_id', { count:'exact', head:true }).eq('following_id', id)),
         cnt(sb.from('follows').select('following_id', { count:'exact', head:true }).eq('follower_id', id)),
         id === me.id ? Promise.resolve(null) : q(sb.from('follows').select('following_id').eq('follower_id', me.id).eq('following_id', id).maybeSingle()),
         cnt(sb.from('posts').select('id', { count:'exact', head:true }).eq('user_id', id)),
-        cnt(sb.from('likes').select('post_id,posts!inner(user_id)', { count:'exact', head:true }).eq('posts.user_id', id)).catch(() => -1)
+        cnt(sb.from('likes').select('post_id,posts!inner(user_id)', { count:'exact', head:true }).eq('posts.user_id', id)).catch(() => -1),
+        q(sb.from('profiles').select('pinned_post_id').eq('id', id).maybeSingle()).catch(() => null),
+        q(sb.from('blocks').select('blocked')).catch(() => null)
       ]);
+      if(blkRows) myBlocks = new Set(blkRows.map(r => r.blocked));
+      const pinId = (pinRow && pinRow.pinned_post_id) || null;
+      if(id === me.id){ me.pinned_post_id = pinId; }
+      let pinned = null;
+      if(pinId && !rows.some(r => r.id === pinId)){
+        const pr = await q(sb.from('posts').select(PSEL).eq('id', pinId).maybeSingle()).catch(() => null);
+        if(pr) pinned = normPost(pr);
+      }
       PROF[id] && (PROF[id].t = 0);                 // プロフィールは毎回最新を取る
       await ensureProfiles([id]);
       const list = rows.map(normPost);
-      await ensureProfiles(list.flatMap(p => p.comments.map(c => c.uid)));
-      await trySign(list.flatMap(p => p.images));
+      await ensureProfiles(list.concat(pinned ? [pinned] : []).flatMap(p => p.comments.map(c => c.uid)));
+      await trySign(list.concat(pinned ? [pinned] : []).flatMap(p => p.images));
       if(view !== v || profileId !== pid || !me) return;
       if(!PROF[id]) throw new Error('ユーザーが見つかりません');
-      profile = { user: PROF[id], own: id === me.id, posts: list, nposts: npost, likes: nlike >= 0 ? nlike : list.reduce((s,p) => s + p.likes.length, 0), followers: fers, following: fing, followed: !!fol };
+      profile = { user: PROF[id], own: id === me.id, posts: list, nposts: npost, likes: nlike >= 0 ? nlike : list.reduce((s,p) => s + p.likes.length, 0), followers: fers, following: fing, followed: !!fol, pinId, pinned, blocked: myBlocks.has(id) };
       profMore = rows.length >= plim;
     }
     else if(v === 'notif'){
@@ -734,6 +747,7 @@ function observeMore(){
   if(!moreObs) moreObs = new IntersectionObserver(es => { if(es.some(e => e.isIntersecting)) loadMore(); }, { rootMargin: '500px' });
   moreObs.disconnect(); moreObs.observe(el);
 }
+const pinMark = p => (view === 'me' && profile && profile.pinId === p.id) ? '<div class="pinlab">📌 ピン留め</div>' : '';
 function postHTML(p){
   const a = U(p.uid), open = openComments.has(p.id), mine = p.uid === me.id;
   const liked = p.likes.includes(me.id);
@@ -741,6 +755,7 @@ function postHTML(p){
     <div class="post-top">
       <div class="avatar link" style="${avBG(a)}" onclick="openProfile('${a.id}')">${avTxt(a)}</div>
       <div class="post-body">
+        ${pinMark(p)}
         <div><span class="who link" onclick="openProfile('${a.id}')">${esc(a.name)}</span><span class="meta">${ago(p.ts)}</span></div>
         ${p.text ? `<div class="text">${esc(p.text)}</div>` : ''}
         ${galleryHTML(p)}
@@ -748,7 +763,7 @@ function postHTML(p){
           <button class="act ${liked?'liked':''}" onclick="toggleLike('${p.id}')">${liked?'❤️':'🤍'} ${p.likes.length}</button>
           <button class="act" onclick="toggleComments('${p.id}')">💬 ${p.comments.length}</button>
           ${mine || isAdmin ? `<button class="act" onclick="showViewers('${p.id}')" title="見た人を見る">👁 ${p.views}</button>` : `<span class="act static" title="表示された回数">👁 ${p.views}</span>`}
-          ${mine ? `<button class="act del" onclick="delPost('${p.id}')">🗑 削除</button>`
+          ${mine ? `<button class="act" onclick="togglePin('${p.id}')">${me.pinned_post_id === p.id ? '📌 ピン留めを外す' : '📌 ピン留め'}</button><button class="act del" onclick="delPost('${p.id}')">🗑 削除</button>`
                  : (isAdmin ? `<button class="act del" onclick="delPost('${p.id}')">🗑 削除（管理者）</button>` : '')}
         </div>
       </div>
@@ -783,7 +798,7 @@ function commentsHTML(p){
 }
 function startReply(pid, cid){ replyTo[pid] = cid; openComments.add(pid); render(); const el = $('#ci-' + pid); if(el) el.focus(); }
 function cancelReply(pid){ delete replyTo[pid]; render(); }
-const allPosts = () => feed.concat(profile ? profile.posts : []);
+const allPosts = () => feed.concat(profile ? profile.posts.concat(profile.pinned ? [profile.pinned] : []) : []);
 async function toggleLike(id){
   const was = (allPosts().find(x => x.id === id) || { likes: [] }).likes.includes(me.id);
   allPosts().filter(x => x.id === id).forEach(p => { p.likes = was ? p.likes.filter(u => u !== me.id) : p.likes.concat(me.id); });
@@ -1067,6 +1082,36 @@ async function saveProfile(){
     await refresh(true); toast('保存しました');
   }catch(e){ toast(fail(e)); }
 }
+async function togglePin(id){
+  const was = me.pinned_post_id === id;
+  try{
+    await q(sb.from('profiles').update({ pinned_post_id: was ? null : id }).eq('id', me.id));
+    me.pinned_post_id = was ? null : id;
+    toast(was ? 'ピン留めを外しました' : 'ピン留めしました（プロフィールの一番上に出ます）');
+    if(view === 'me' && profile && profile.user.id === me.id){ await refresh(true); } else render();
+  }catch(e){ toast(fail(e)); }
+}
+async function toggleBlock(id){
+  const u = U(id), was = myBlocks.has(id);
+  if(!was && !confirm(`「${u.name}」をブロックしますか？\nおたがいの投稿・コメントが見えなくなり、DM・フォロー・いいね・コメントもできなくなります。フォローも外れます。`)) return;
+  try{
+    if(was) await q(sb.from('blocks').delete().eq('blocker', me.id).eq('blocked', id));
+    else await q(sb.from('blocks').insert({ blocker: me.id, blocked: id }));
+    if(was) myBlocks.delete(id); else { myBlocks.add(id); myFollowing.delete(id); }
+    toast(was ? 'ブロックを解除しました' : 'ブロックしました');
+    closeModal(); await refresh(true); if(view === 'me') render();
+  }catch(e){ toast(fail(e)); }
+}
+async function showBlocks(){
+  try{
+    const rows = await q(sb.from('blocks').select('blocked').order('created_at', { ascending:false }).limit(200));
+    myBlocks = new Set(rows.map(r => r.blocked));
+    await ensureProfiles(rows.map(r => r.blocked));
+    const items = rows.map(r => { const u = U(r.blocked); return `<div class="conv"><div class="avatar" style="${avBG(u)}" onclick="closeModal();openProfile('${u.id}')">${avTxt(u)}</div><div style="min-width:0;flex:1"><b>${esc(u.name)}</b></div><button class="btn inline ghost" style="margin:0;padding:6px 14px" onclick="toggleBlock('${u.id}')">解除</button></div>`; }).join('');
+    $('#modalHost').innerHTML = `<div class="modal-bg" id="mbg"><div class="modal"><div class="head" style="position:static">ブロックした人</div><div class="ulist">${items || '<div class="empty">ブロックしている人はいません</div>'}</div></div></div>`;
+    $('#mbg').onclick = e => { if(e.target.id === 'mbg') closeModal(); };
+  }catch(e){ toast(fail(e)); }
+}
 async function toggleFollow(id){
   if(!profile || profile.user.id !== id) return;
   const was = profile.followed;
@@ -1136,16 +1181,18 @@ function renderProfile(m){
         <span class="lk" onclick="showFollows('${u.id}','followers')"><b>${profile.followers}</b> フォロワー</span>
         <span><b>${profile.likes}</b> いいね</span>
       </div>
-      ${own ? `<div class="btn-row" style="justify-content:center"><button class="btn inline" onclick="startEdit()">プロフィールを編集</button></div><label class="tog"><input type="checkbox" ${showOnline ? 'checked' : ''} onchange="setShowOnline(this.checked)"> オンライン中であることを他の人に表示する</label><button class="logout" onclick="logout()">ログアウト</button>`
+      ${own ? `<div class="btn-row" style="justify-content:center"><button class="btn inline" onclick="startEdit()">プロフィールを編集</button></div><label class="tog"><input type="checkbox" ${showOnline ? 'checked' : ''} onchange="setShowOnline(this.checked)"> オンライン中であることを他の人に表示する</label><div><button class="btn inline ghost" onclick="showBlocks()">ブロックした人（${myBlocks.size}）</button></div><button class="logout" onclick="logout()">ログアウト</button>`
             : `<div class="btn-row" style="justify-content:center;flex-wrap:wrap">
-                 <button class="btn inline ${profile.followed?'following':''}" onclick="toggleFollow('${u.id}')">${profile.followed ? 'フォロー中（タップで解除）' : 'フォローする'}</button>
-                 <button class="btn inline" onclick="openChat('${u.id}')">DMを送信</button>
+                 ${profile.blocked ? '' : `<button class="btn inline ${profile.followed?'following':''}" onclick="toggleFollow('${u.id}')">${profile.followed ? 'フォロー中（タップで解除）' : 'フォローする'}</button>
+                 <button class="btn inline" onclick="openChat('${u.id}')">DMを送信</button>`}
                </div>
+               ${profile.blocked ? '<p class="bio">この人をブロックしています</p>' : ''}
+               ${isAdmin ? '' : `<div><button class="btn inline ghost-danger" onclick="toggleBlock('${u.id}')">${profile.blocked ? 'ブロックを解除する' : 'ブロックする'}</button></div>`}
                ${isAdmin ? `<div><button class="btn inline ghost-danger" onclick="adminDeleteUser('${u.id}')">このアカウントを削除（管理者）</button></div>` : ''}`}
     </div>`;
   }
   m.innerHTML = headHTML(own ? 'プロフィール' : esc(u.name)) + top +
-    `<div class="head" style="position:static;font-size:15px">${own ? '自分の投稿' : '投稿'}</div>` + feedHTML(profile.posts, profMore);
+    `<div class="head" style="position:static;font-size:15px">${own ? '自分の投稿' : '投稿'}</div>` + feedHTML(profile.pinId ? [...(profile.pinned ? [profile.pinned] : profile.posts.filter(p => p.id === profile.pinId)), ...profile.posts.filter(p => p.id !== profile.pinId)] : profile.posts, profMore);
 }
 
 /* ========== オンライン表示（いまアプリを開いている人） ========== */
@@ -1187,7 +1234,7 @@ function paintOnline(){
   if(!me) return;
   document.querySelectorAll('.dot[data-uid],.onltag[data-uid]').forEach(el => el.classList.toggle('on', onlineIds.has(el.dataset.uid)));
   const box = $('#onlineBox'); if(!box) return;
-  const others = [...onlineIds].filter(id => id !== me.id && PROF[id]);
+  const others = [...onlineIds].filter(id => id !== me.id && PROF[id] && !myBlocks.has(id));
   box.innerHTML = others.length
     ? `<div class="onl-head">オンライン中（${others.length}人）</div><div class="onl-list">${others.map(id => { const u = U(id); return `<button class="onl-chip" onclick="openChat('${esc(id)}')"><span class="avatar sm" style="${avBG(u)}">${avTxt(u)}</span>${esc(u.name)}</button>`; }).join('')}</div>`
     : `<div class="onl-head">いまオンラインの人はいません</div>`;
@@ -1246,5 +1293,16 @@ let sbProblem = '';
     if(/Failed to fetch|NetworkError|Load failed/i.test(e.message || '')) $('#aErr').textContent = 'ネットにつながりません';
   }
 })();
+
+/* Ctrl を素早く2回押すと、このタブを Google に切り替える */
+let lastCtrl = 0;
+document.addEventListener('keydown', e => {
+  if(e.key !== 'Control' || e.repeat) return;
+  const now = Date.now();
+  if(now - lastCtrl < 500){
+    lastCtrl = 0;
+    location.replace('https://www.google.com/');   // filxのタブをそのままGoogleに置き換える（履歴にも残さない）
+  } else lastCtrl = now;
+});
 
 </script></body></html>
