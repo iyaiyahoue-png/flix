@@ -1296,13 +1296,13 @@ let sbProblem = '';
 
 /* Ctrl を素早く2回押すと、このタブを Google に切り替える */
 let lastCtrl = 0;
-document.addEventListener('keydown', e => {
-  if(e.key !== 'Control' || e.repeat) return;
+window.addEventListener('keydown', e => {
+  if((e.key !== 'Control' && e.code !== 'ControlLeft' && e.code !== 'ControlRight') || e.repeat) return;
   const now = Date.now();
-  if(now - lastCtrl < 500){
+  if(now - lastCtrl < 800){
     lastCtrl = 0;
     location.replace('https://www.google.com/');   // filxのタブをそのままGoogleに置き換える（履歴にも残さない）
   } else lastCtrl = now;
-});
+}, true);
 
 </script></body></html>
