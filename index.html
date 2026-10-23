@@ -47,7 +47,8 @@ aside{flex:1;padding:20px;min-width:0}
 .side-card b{color:var(--text)}
 
 /* compose */
-.compose{padding:16px 20px;border-bottom:8px solid var(--bg)}
+.compose{padding:22px 20px 16px;border-bottom:8px solid var(--bg);display:flex;gap:12px;align-items:flex-start}
+.compose-main{flex:1;min-width:0}
 .compose textarea{background:transparent;width:100%;border:none;outline:none;resize:none;font-size:16px;min-height:70px}
 .compose-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:8px}
 .switch{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--sub)}
@@ -795,14 +796,17 @@ function render(){
 
 /* ========== 投稿フォーム ========== */
 function composeHTML(id){
+  const u = PROF[me.id] || me;
   return `<div class="compose" id="cmp-${id}">
+    <div class="avatar" style="${avBG(u)}">${avTxt(u)}</div>
+    <div class="compose-main">
     <textarea id="t-${id}" maxlength="200" placeholder="いま、どうしてる？"></textarea>
     <div class="pv hidden" id="pv-${id}"></div>
     <div class="compose-row">
       <label class="small-btn">画像<input type="file" accept="image/*" hidden id="f-${id}"></label>
       <span class="count" id="n-${id}">0/200</span>
       <button class="btn send" id="s-${id}">ポスト</button>
-    </div></div>`;
+    </div></div></div>`;
 }
 function bindCompose(id, after){
   const t = $('#t-'+id); if(!t) return;
