@@ -68,7 +68,7 @@ aside{flex:1;padding:20px;min-width:0}
 .btn-row{display:flex;gap:8px;margin-top:6px}
 .btn-row .btn.ghost{background:var(--bg);color:var(--text);border:1px solid var(--line)}
 .btn.inline{width:auto;padding:9px 26px;border-radius:20px;margin-top:12px}
-.avatar{position:relative;width:42px;height:42px;border-radius:50%;overflow:hidden;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;color:#fff;font-weight:700}
+.avatar{--d:42px;position:relative;width:42px;height:42px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;color:#fff;font-weight:700}
 .post-body{flex:1;min-width:0}
 .who{font-weight:700;font-size:15px}
 .meta{color:var(--sub);font-size:12px;font-weight:400;margin-left:6px}
@@ -104,7 +104,7 @@ aside{flex:1;padding:20px;min-width:0}
 .chat-form button{padding:10px 18px;border:none;border-radius:20px;background:var(--main);color:#fff;font-weight:700}
 .back{border:none;background:none;color:var(--main);font-weight:700;padding:0;margin-right:10px}
 .profile-top{padding:28px 20px;text-align:center;border-bottom:8px solid var(--bg)}
-.profile-top .avatar{width:80px;height:80px;font-size:36px;margin:0 auto 12px}
+.profile-top .avatar{--d:80px;width:80px;height:80px;font-size:36px;margin:0 auto 12px}
 .profile-top h2{margin:0}
 .profile-top p{color:var(--sub);margin:4px 0}
 .logout{margin-top:14px;padding:8px 20px;border:1px solid var(--line);background:var(--card);border-radius:20px;color:var(--red);font-weight:700}
@@ -201,7 +201,7 @@ aside{flex:1;padding:20px;min-width:0}
 .frm{position:absolute;inset:0;border-radius:50%;pointer-events:none;--rw:3px;z-index:1}
 .avatar.sm .frm{--rw:2px}
 .profile-top .frm{--rw:5px}
-.avatar.big{width:72px;height:72px;font-size:30px;margin:0 auto 8px}
+.avatar.big{--d:72px;width:72px;height:72px;font-size:30px;margin:0 auto 8px}
 .avatar.big .frm{--rw:5px}
 .f-white{box-shadow:inset 0 0 0 var(--rw) #fff}
 .f-mint{box-shadow:inset 0 0 0 var(--rw) #5eead4}
@@ -230,6 +230,13 @@ aside{flex:1;padding:20px;min-width:0}
 .fil-bal b{font-size:34px;line-height:1}
 .fil-bal small{color:var(--sub);font-weight:700}
 .fil-adm{margin-left:8px;font-size:11px;font-weight:700;color:var(--main);border:1px solid var(--main);border-radius:10px;padding:1px 8px;align-self:center}
+.ban-tools{display:flex;gap:8px;padding:6px 16px}
+.ban-tools .btn{margin:0;padding:6px 14px}
+.ban-row{cursor:pointer;gap:12px}
+.ban-row input{width:18px;height:18px;flex-shrink:0}
+.small-sub{color:var(--sub);font-size:12px;font-weight:400}
+.ban-foot{display:flex;gap:8px;justify-content:flex-end;padding:12px 16px;border-top:1px solid var(--line)}
+.ban-foot .btn{margin:0}
 .fil-coin{display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:50%;background:linear-gradient(135deg,#ffe082,#f5a623);color:#7a4a00;font-size:11px;font-weight:800;align-self:center}
 .q-sec{padding:16px 20px 8px;font-weight:800;border-top:8px solid var(--bg)}
 .q-sec small{color:var(--sub);font-weight:600;margin-left:6px;font-size:12px}
@@ -255,6 +262,50 @@ aside{flex:1;padding:20px;min-width:0}
 .s-price{color:#f5a623;font-weight:800;font-size:13px}
 .shopitem .btn{white-space:nowrap;font-size:13px;padding:8px 12px}
 @media(max-width:820px){.nav-item{white-space:nowrap;padding:6px 2px!important}}
+
+/* ===== あたまの飾り・バッジ・エフェクト（アバターのまわりに重ねる） ===== */
+.deco{position:absolute;pointer-events:none;font-style:normal;line-height:1}
+.avatar.sm .deco{display:none}
+.hat{left:50%;top:calc(var(--d)*-.3);transform:translateX(-50%);font-size:calc(var(--d)*.55);z-index:3;display:flex;justify-content:center;align-items:center;width:calc(var(--d)*.7);height:calc(var(--d)*.55)}
+.bdg{left:calc(var(--d)*-.1);bottom:calc(var(--d)*-.1);width:calc(var(--d)*.44);height:calc(var(--d)*.44);border-radius:50%;background:var(--card);border:1px solid var(--line);display:flex;align-items:center;justify-content:center;font-size:calc(var(--d)*.28);z-index:3}
+.fx{inset:0;border-radius:50%;z-index:0}
+.x-hat_ribbon::before{content:'🎀'}
+.x-hat_cap::before{content:'🧢'}
+.x-hat_tophat::before{content:'🎩'}
+.x-hat_grad::before{content:'🎓'}
+.x-hat_crown::before{content:'👑'}
+.x-hat_cat{background:none}
+.x-hat_cat::before,.x-hat_cat::after{content:'';position:absolute;top:calc(var(--d)*.2);width:0;height:0;border-left:calc(var(--d)*.14) solid transparent;border-right:calc(var(--d)*.14) solid transparent;border-bottom:calc(var(--d)*.26) solid #f9a8d4}
+.x-hat_cat::before{left:calc(var(--d)*.04);transform:rotate(-14deg)}
+.x-hat_cat::after{right:calc(var(--d)*.04);transform:rotate(14deg)}
+.x-hat_halo::before{content:'';width:calc(var(--d)*.5);height:calc(var(--d)*.16);border-radius:50%;border:calc(var(--d)*.045) solid #ffe066;box-shadow:0 0 8px 1px #ffe066,inset 0 0 5px #ffe066;animation:frmPulse 2s ease-in-out infinite}
+.x-bdg_star::before{content:'⭐'}
+.x-bdg_heart::before{content:'💖'}
+.x-bdg_music::before{content:'🎵'}
+.x-bdg_game::before{content:'🎮'}
+.x-bdg_cat::before{content:'🐱'}
+.x-bdg_fire::before{content:'🔥'}
+.x-bdg_gem::before{content:'💎'}
+.x-bdg_trophy::before{content:'🏆'}
+.x-fx_blue{box-shadow:0 0 calc(var(--d)*.28) calc(var(--d)*.05) #38bdf8;animation:frmPulse 1.8s ease-in-out infinite}
+.x-fx_gold{box-shadow:0 0 calc(var(--d)*.3) calc(var(--d)*.07) #ffd54f,0 0 calc(var(--d)*.6) calc(var(--d)*.04) #ff9800;animation:frmPulse 1.4s ease-in-out infinite}
+.x-fx_sparkle::before,.x-fx_sparkle::after,.x-fx_hearts::before,.x-fx_hearts::after,.x-fx_snow::before,.x-fx_snow::after,.x-fx_sakura::before,.x-fx_sakura::after{position:absolute;font-size:calc(var(--d)*.26)}
+.x-fx_sparkle::before{content:'✨';right:calc(var(--d)*-.12);top:calc(var(--d)*-.08);animation:frmTwinkle 1.3s ease-in-out infinite}
+.x-fx_sparkle::after{content:'✨';left:calc(var(--d)*-.1);bottom:calc(var(--d)*.1);animation:frmTwinkle 1.3s ease-in-out .6s infinite}
+.x-fx_hearts::before{content:'💕';right:calc(var(--d)*-.05);bottom:calc(var(--d)*.3);animation:fxUp 2.4s ease-in infinite}
+.x-fx_hearts::after{content:'💗';left:calc(var(--d)*.05);bottom:calc(var(--d)*.3);animation:fxUp 2.4s ease-in 1.2s infinite}
+.x-fx_snow::before{content:'❄️';left:calc(var(--d)*.1);top:calc(var(--d)*-.1);animation:fxDown 2.6s linear infinite}
+.x-fx_snow::after{content:'❄️';right:calc(var(--d)*.1);top:calc(var(--d)*-.1);animation:fxDown 2.6s linear 1.3s infinite}
+.x-fx_sakura::before{content:'🌸';left:calc(var(--d)*.0);top:calc(var(--d)*-.1);animation:fxDown 3s linear infinite}
+.x-fx_sakura::after{content:'🌸';right:calc(var(--d)*.0);top:calc(var(--d)*-.1);animation:fxDown 3s linear 1.5s infinite}
+@keyframes fxUp{0%{transform:translateY(0) scale(.6);opacity:0}25%{opacity:1}100%{transform:translateY(calc(var(--d)*-.7)) scale(1);opacity:0}}
+@keyframes fxDown{0%{transform:translateY(0) rotate(0);opacity:0}15%{opacity:1}100%{transform:translateY(calc(var(--d)*1.1)) rotate(180deg);opacity:0}}
+@media(prefers-reduced-motion:reduce){.deco,.deco::before,.deco::after{animation:none!important}}
+.kindtabs{display:flex;gap:6px;padding:12px 14px 4px;overflow-x:auto}
+.kindtabs button{flex-shrink:0;border:1px solid var(--line);background:none;color:var(--sub);border-radius:16px;padding:6px 14px;font-weight:700;font-size:13px}
+.kindtabs button.on{background:var(--main);border-color:var(--main);color:#fff}
+.shopgrid{padding-top:20px}
+.shopitem{padding-top:22px}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.112.3/dist/umd/supabase.js"></script>
 </head>
@@ -324,7 +375,11 @@ const NAME_RE = { test: n => { const c = [...String(n)].length; return c >= 1 &&
 const AVRE = /^data:image\/jpeg;base64,[A-Za-z0-9+\/=]+$/;
 const hasAv = u => !!(u.avatar && AVRE.test(u.avatar));
 const avBG = u => hasAv(u) ? `background:url('${u.avatar}') center/cover` : `background:${colorOf(u.name||'?')}`;
-const avTxt = u => (hasAv(u) ? '' : esc([...(u.name||'?')][0].toUpperCase())) + (u.frame ? `<i class="frm f-${esc(u.frame)}"></i>` : '') + `<i class="dot" data-uid="${esc(u.id || '')}"></i>`;
+const decoHTML = u => (u.frame ? `<i class="frm f-${esc(u.frame)}"></i>` : '')
+  + (u.effect ? `<i class="deco fx x-${esc(u.effect)}"></i>` : '')
+  + (u.hat ? `<i class="deco hat x-${esc(u.hat)}"></i>` : '')
+  + (u.badge ? `<i class="deco bdg x-${esc(u.badge)}"></i>` : '');
+const avTxt = u => (hasAv(u) ? '' : esc([...(u.name||'?')][0].toUpperCase())) + decoHTML(u) + `<i class="dot" data-uid="${esc(u.id || '')}"></i>`;
 
 /* エラー文を日本語にする */
 function errMsg(e){
@@ -370,7 +425,7 @@ async function ensureProfiles(ids){
   const now = Date.now();
   const need = [...new Set(ids)].filter(id => id && (!PROF[id] || now - PROF[id].t > 120000));
   if(!need.length) return;
-  const rows = await q(sb.from('profiles').select('id,name,bio,avatar,frame').in('id', need));
+  const rows = await q(sb.from('profiles').select('id,name,bio,avatar,frame,hat,badge,effect').in('id', need));
   rows.forEach(p => PROF[p.id] = Object.assign({}, p, { t: now }));
 }
 const normPost = p => ({
@@ -538,7 +593,7 @@ async function loadMe(){
   const { data } = await sb.auth.getSession();
   const user = data.session && data.session.user;
   if(!user) throw new Error('ログインできませんでした');
-  const p = await q(sb.from('profiles').select('id,name,bio,avatar,pinned_post_id,frame').eq('id', user.id).maybeSingle());
+  const p = await q(sb.from('profiles').select('id,name,bio,avatar,pinned_post_id,frame,hat,badge,effect').eq('id', user.id).maybeSingle());
   if(!p) throw new Error('プロフィールが見つかりません');
   me = Object.assign({}, p, { email: user.email });
   PROF[me.id] = Object.assign({}, p, { t: Date.now() });
@@ -663,7 +718,7 @@ async function refresh(silent){
       const sig = JSON.stringify(r.data);
       if(silent && fil && fil.sig === sig && $('#questBox')) return;       // 変化がなければ描き直さない
       fil = Object.assign({ sig }, r.data);
-      if(fil.equipped !== (me.frame || null)){ me.frame = fil.equipped || null; if(PROF[me.id]) PROF[me.id].frame = me.frame; }
+      syncEquipped();
     }
     else if(v === 'dm'){
       if(dw){
@@ -1251,7 +1306,7 @@ function renderProfile(m){
         <span class="lk" onclick="showFollows('${u.id}','followers')"><b>${profile.followers}</b> フォロワー</span>
         <span><b>${profile.likes}</b> いいね</span>
       </div>
-      ${own ? `<div class="btn-row" style="justify-content:center"><button class="btn inline" onclick="startEdit()">プロフィールを編集</button></div><label class="tog"><input type="checkbox" ${showOnline ? 'checked' : ''} onchange="setShowOnline(this.checked)"> オンライン中であることを他の人に表示する</label><div><button class="btn inline ghost" onclick="showBlocks()">ブロックした人（${myBlocks.size}）</button></div><button class="logout" onclick="logout()">ログアウト</button>`
+      ${own ? `<div class="btn-row" style="justify-content:center"><button class="btn inline" onclick="startEdit()">プロフィールを編集</button></div><label class="tog"><input type="checkbox" ${showOnline ? 'checked' : ''} onchange="setShowOnline(this.checked)"> オンライン中であることを他の人に表示する</label><div><button class="btn inline ghost" onclick="showBlocks()">ブロックした人（${myBlocks.size}）</button></div>${isAdmin ? '<div><button class="btn inline ghost-danger" onclick="openBan()">アカウント管理（まとめてBAN）</button></div>' : ''}<button class="logout" onclick="logout()">ログアウト</button>`
             : `<div class="btn-row" style="justify-content:center;flex-wrap:wrap">
                  ${profile.blocked ? '' : `<button class="btn inline ${profile.followed?'following':''}" onclick="toggleFollow('${u.id}')">${profile.followed ? 'フォロー中（タップで解除）' : 'フォローする'}</button>
                  <button class="btn inline" onclick="openChat('${u.id}')">DMを送信</button>`}
@@ -1312,10 +1367,67 @@ function paintOnline(){
 document.addEventListener('visibilitychange', trackOnline);
 
 
-/* ========== クエスト・fil・アイコンフレーム ========== */
-let fil = null, questTab = 'quest';
+
+/* ========== 管理者: 垢をまとめてBAN ========== */
+let banList = [], banSel = new Set(), banTimer = null;
+async function openBan(){
+  if(!isAdmin) return;
+  banSel = new Set();
+  $('#modalHost').innerHTML = `<div class="modal-bg" id="mbg"><div class="modal"><div class="head" style="position:static">アカウント管理（まとめてBAN）</div>
+    <div class="dm-new" style="border:none;padding:12px 16px 4px"><input id="banQ" placeholder="名前で絞り込み（空だと全員）" oninput="banSearchSoon()"></div>
+    <div class="ban-tools"><button class="btn inline ghost" onclick="banAll(true)">表示中を全選択</button><button class="btn inline ghost" onclick="banAll(false)">全解除</button></div>
+    <div class="ulist" id="banBox"><div class="empty">読み込み中…</div></div>
+    <div class="ban-foot"><button class="btn inline ghost-danger" id="banGo" onclick="banRun()" disabled>選んだ人をBAN</button><button class="btn inline ghost" onclick="closeModal()">閉じる</button></div></div></div>`;
+  $('#mbg').onclick = e => { if(e.target.id === 'mbg') closeModal(); };
+  banLoad();
+}
+function banSearchSoon(){ clearTimeout(banTimer); banTimer = setTimeout(banLoad, 300); }
+async function banLoad(){
+  try{
+    const r = await sb.rpc('admin_list_users', { search: ($('#banQ') || { value:'' }).value });
+    if(r.error) throw r.error;
+    banList = r.data || [];
+    banPaint();
+  }catch(e){ toast(fail(e)); }
+}
+function banPaint(){
+  const box = $('#banBox'); if(!box) return;
+  const d = x => new Date(x).toLocaleDateString('ja-JP');
+  box.innerHTML = banList.length ? banList.map(u => `<label class="conv ban-row"><input type="checkbox" ${banSel.has(u.id) ? 'checked' : ''} onchange="banTick('${u.id}', this.checked)"><div style="min-width:0;flex:1"><b>${esc(u.name)}</b><div class="small-sub">投稿 ${u.posts}件 ・ ${d(u.created_at)}登録</div></div></label>`).join('')
+                              : '<div class="empty">該当する人がいません</div>';
+  banCount();
+}
+function banTick(id, on){ if(on) banSel.add(id); else banSel.delete(id); banCount(); }
+function banAll(on){ banList.forEach(u => on ? banSel.add(u.id) : banSel.delete(u.id)); banPaint(); }
+function banCount(){ const b = $('#banGo'); if(!b) return; b.disabled = !banSel.size; b.textContent = banSel.size ? `選んだ ${banSel.size} 人をBAN` : '選んだ人をBAN'; }
+async function banRun(){
+  const ids = [...banSel]; if(!ids.length) return;
+  if(ids.length > 100){ toast('一度に消せるのは100人までです'); return; }
+  const names = banList.filter(u => banSel.has(u.id)).slice(0, 5).map(u => u.name).join('、');
+  if(!confirm(`${ids.length}人（${names}${ids.length > 5 ? ' ほか' : ''}）のアカウントを削除してBANします。\n投稿・コメント・DM・画像など、すべてのデータが消えます。メールアドレスも登録できなくなります。\nこの操作は元に戻せません。本当によろしいですか？`)) return;
+  const btn = $('#banGo'); if(btn) btn.disabled = true;
+  try{
+    for(const id of ids){ try{ await purgeFolder(id); }catch(e){} }
+    const n = await q(sb.rpc('admin_delete_users', { targets: ids }));
+    ids.forEach(id => { delete PROF[id]; myFollowing.delete(id); });
+    banSel = new Set(); toast(`${n}人をBANしました`);
+    feed = []; feedCtx = ''; profile = null; await banLoad(); refresh(true);
+  }catch(e){ toast(fail(e)); banCount(); }
+}
+
+/* ========== クエスト・fil・アイコンの飾り ========== */
+let fil = null, questTab = 'quest', shopKind = 'frame';
+const KINDS = [['frame','フレーム'], ['hat','あたまの飾り'], ['badge','バッジ'], ['effect','エフェクト']];
 const stars = r => '★'.repeat(r >= 150 ? 5 : r >= 40 ? 4 : r >= 12 ? 3 : r >= 5 ? 2 : 1);
+function syncEquipped(){
+  const e = (fil && fil.equipped) || {};
+  KINDS.forEach(([k]) => { me[k] = e[k] || null; if(PROF[me.id]) PROF[me.id][k] = me[k]; });
+}
 function setQuestTab(t){ questTab = t; render(); window.scrollTo(0, 0); }
+function setShopKind(k){ shopKind = k; render(); }
+/* 受け取れるものを一番上、受け取り済みを一番下に */
+const qRank = q => q.claimed ? 2 : (q.progress >= q.target ? 0 : 1);
+const qSort = list => list.map((q, i) => [q, i]).sort((a, b) => qRank(a[0]) - qRank(b[0]) || a[1] - b[1]).map(x => x[0]);
 function questCard(q){
   const done = q.progress >= q.target, pct = Math.round(q.progress / q.target * 100);
   const btn = q.claimed ? '<span class="q-done">✓ 受け取り済み</span>'
@@ -1327,24 +1439,26 @@ function questCard(q){
       <div class="q-bar"><i style="width:${pct}%"></i></div></div>
     <div class="q-side"><div class="q-reward">+${q.reward}<small> fil</small></div>${btn}</div></div>`;
 }
-function frameCard(f){
-  const mineOn = fil.equipped === f.id, can = fil.infinite || fil.balance >= f.price;
-  const prev = { id: me.id, name: me.name, avatar: me.avatar, frame: f.id };
-  const act = f.owned ? (mineOn ? `<button class="btn inline ghost" onclick="equipFrame(null)">外す</button>` : `<button class="btn inline" onclick="equipFrame('${f.id}')">つける</button>`)
-                      : `<button class="btn inline${can ? '' : ' ghost'}" onclick="buyFrame('${f.id}')">${f.price} fil で買う</button>`;
+function itemCard(f){
+  const mineOn = (fil.equipped || {})[f.kind] === f.id, can = fil.infinite || fil.balance >= f.price;
+  const prev = { id: me.id, name: me.name, avatar: me.avatar, [f.kind]: f.id };
+  const act = f.owned ? (mineOn ? `<button class="btn inline ghost" onclick="equipItem('${f.kind}', null)">外す</button>` : `<button class="btn inline" onclick="equipItem('${f.kind}', '${f.id}')">つける</button>`)
+                      : `<button class="btn inline${can ? '' : ' ghost'}" onclick="buyItem('${f.id}')">${f.price} fil で買う</button>`;
   return `<div class="shopitem${mineOn ? ' on' : ''}"><div class="avatar big" style="${avBG(prev)}">${avTxt(prev)}</div>
     <div class="s-name">${esc(f.name)}</div><div class="s-desc">${esc(f.descr)}</div>
     <div class="s-price">${f.owned ? (mineOn ? '装備中' : '持っています') : f.price + ' fil'}</div>${act}</div>`;
 }
 function renderQuest(m){
   if(!fil){ m.innerHTML = headHTML('クエスト') + '<div class="empty">読み込み中…</div>'; return; }
-  const daily = fil.quests.filter(q => q.kind === 'daily'), once = fil.quests.filter(q => q.kind === 'once');
+  const daily = qSort(fil.quests.filter(q => q.kind === 'daily')), once = qSort(fil.quests.filter(q => q.kind === 'once'));
   const ready = fil.quests.filter(q => q.progress >= q.target && !q.claimed).length;
   const tabs = `<div class="subtabs"><button class="${questTab==='quest'?'on':''}" onclick="setQuestTab('quest')">クエスト${ready ? `<span class="badge" style="margin-left:6px">${ready}</span>` : ''}</button><button class="${questTab==='shop'?'on':''}" onclick="setQuestTab('shop')">ショップ</button></div>`;
   const bal = `<div class="fil-bal"><span class="fil-coin">fil</span><b>${fil.infinite ? '∞' : fil.balance}</b><small>fil</small>${fil.infinite ? '<span class="fil-adm">管理者</span>' : ''}</div>`;
   let body;
   if(questTab === 'shop'){
-    body = `<div class="q-sec">アイコンフレーム <small>高いほど豪華！</small></div><div class="shopgrid">${fil.frames.map(frameCard).join('')}</div>`;
+    const kinds = `<div class="kindtabs">${KINDS.map(([k, n]) => `<button class="${shopKind===k?'on':''}" onclick="setShopKind('${k}')">${n}</button>`).join('')}</div>`;
+    const list = fil.items.filter(f => f.kind === shopKind);
+    body = kinds + `<div class="shopgrid">${list.map(itemCard).join('')}</div>`;
   } else {
     body = `<div class="q-sec">デイリー <small>毎日0時にリセット</small></div>${daily.map(questCard).join('')}
             <div class="q-sec">チャレンジ <small>1回だけ・ごほうび大きめ</small></div>${once.map(questCard).join('')}`;
@@ -1359,23 +1473,24 @@ async function claimQuest(id){
     fil = null; await refresh(true); if(view === 'quest') render();
   }catch(e){ toast(fail(e)); fil = null; refresh(true); }
 }
-async function buyFrame(id){
-  const f = fil && fil.frames.find(x => x.id === id); if(!f) return;
+async function buyItem(id){
+  const f = fil && fil.items.find(x => x.id === id); if(!f) return;
   if(!fil.infinite && fil.balance < f.price){ toast(`filが足りません（あと ${f.price - fil.balance} fil）`); return; }
   if(!confirm(`「${f.name}」を ${f.price} fil で買いますか？`)) return;
   try{
     const r = await sb.rpc('buy_frame', { fid: id });
     if(r.error) throw r.error;
-    await equipFrame(id, true);
+    await equipItem(f.kind, id, true);
     toast(`「${f.name}」を手に入れた！つけました`);
   }catch(e){ toast(fail(e)); fil = null; refresh(true); }
 }
-async function equipFrame(id, quiet){
+async function equipItem(kind, id, quiet){
+  if(!KINDS.some(k => k[0] === kind)) return;
   try{
-    await q(sb.from('profiles').update({ frame: id }).eq('id', me.id));
-    me.frame = id; if(PROF[me.id]) PROF[me.id].frame = id;
+    await q(sb.from('profiles').update({ [kind]: id }).eq('id', me.id));
+    me[kind] = id; if(PROF[me.id]) PROF[me.id][kind] = id;
     fil = null; await refresh(true); if(view === 'quest') render();
-    if(!quiet) toast(id ? 'フレームをつけました' : 'フレームを外しました');
+    if(!quiet) toast(id ? 'つけました' : '外しました');
   }catch(e){ toast(fail(e)); }
 }
 
