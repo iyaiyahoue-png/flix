@@ -236,6 +236,7 @@ aside{flex:1;padding:20px;min-width:0}
 .ban-row{cursor:pointer;gap:12px}
 .ban-row input{width:18px;height:18px;flex-shrink:0}
 .small-sub{color:var(--sub);font-size:12px;font-weight:400}
+.ban-fil{margin:0!important;padding:4px 10px!important;font-size:12px;flex-shrink:0}
 .ban-foot{display:flex;gap:8px;justify-content:flex-end;padding:12px 16px;border-top:1px solid var(--line)}
 .ban-foot .btn{margin:0}
 .fil-coin{display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:50%;background:linear-gradient(135deg,#ffe082,#f5a623);color:#7a4a00;font-size:11px;font-weight:800;align-self:center}
@@ -307,6 +308,46 @@ aside{flex:1;padding:20px;min-width:0}
 .kindtabs button.on{background:var(--main);border-color:var(--main);color:#fff}
 .shopgrid{padding-top:20px}
 .shopitem{padding-top:22px}
+
+/* ===== プロフィール演出 ===== */
+.pfxo{position:fixed;inset:0;pointer-events:none;z-index:60;overflow:hidden}
+.pfxo span{position:absolute;display:block;animation-fill-mode:both;animation-timing-function:linear}
+.pf-fall{top:-40px;animation-name:pfFall}
+.pf-shoot{animation-name:pfShoot;animation-timing-function:ease-out!important}
+.pf-bubble{bottom:-70px;border-radius:50%;border:2px solid rgba(180,225,255,.9);background:radial-gradient(circle at 30% 30%,rgba(255,255,255,.85),rgba(150,210,255,.15) 60%);animation-name:pfRise}
+.pf-burst{width:7px;height:7px;border-radius:50%;animation-name:pfBurst;animation-timing-function:ease-out!important}
+@keyframes pfFall{0%{transform:translate(0,0) rotate(0);opacity:0}8%{opacity:1}100%{transform:translate(var(--sw),115vh) rotate(var(--rt));opacity:.9}}
+@keyframes pfRise{0%{transform:translate(0,0) scale(.6);opacity:0}12%{opacity:1}100%{transform:translate(var(--sw),-115vh) scale(1.1);opacity:.7}}
+@keyframes pfShoot{0%{transform:translate(0,0) scale(.4);opacity:0}15%{opacity:1}100%{transform:translate(70vw,60vh) scale(1);opacity:0}}
+@keyframes pfBurst{0%{transform:translate(0,0) scale(.3);opacity:1}100%{transform:translate(var(--dx),var(--dy)) scale(1);opacity:0}}
+.pfxitem{padding-top:14px}
+.pfx-ico{font-size:44px;line-height:72px;height:72px}
+.pfx-prev .btn{margin:0;padding:4px 14px;font-size:12px}
+
+/* ===== フィルキャスト ===== */
+.livedot{width:9px;height:9px;border-radius:50%;background:#ff4d4d;margin-left:6px;display:inline-block;animation:frmPulse 1.2s ease-in-out infinite}
+.livedot.hidden{display:none}
+@media(max-width:820px){.nav-item .livedot{position:absolute;top:4px;right:22%;margin:0}}
+.rec{color:#ff4d4d}
+.cast-card{margin:16px 20px;padding:16px;border:1px solid var(--line);border-radius:16px;background:var(--card)}
+.cast-card.live{border-color:#ff4d4d}
+.cast-h{font-weight:800;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.cast-timer{margin-left:auto;font-variant-numeric:tabular-nums;color:var(--sub);font-weight:700}
+.cast-btns{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.cast-btns .btn{margin:0}
+.cast-btns .btn[disabled]{opacity:.4}
+.cast-help{color:var(--sub);font-size:12px;margin:10px 0 0}
+.cast-video{width:100%;max-height:60vh;background:#000;border-radius:10px;display:block}
+.cast-video.prev{margin-top:10px;max-height:40vh}
+.cast-slot{margin-top:10px}
+.cast-slot.audio .cast-video{height:54px}
+.cast-audio{margin-top:10px;padding:20px;text-align:center;background:var(--bg);border-radius:10px;font-weight:700}
+.cast-info{margin:0 20px 24px;color:var(--sub);font-size:12px;line-height:1.8}
+.cast-info b{color:var(--text)}
+.castbar{position:fixed;left:50%;transform:translateX(-50%);bottom:16px;z-index:45;background:#2b3040;border:1px solid #ff4d4d;color:#fff;border-radius:22px;padding:8px 16px;font-size:13px;cursor:pointer;white-space:nowrap;max-width:94vw;overflow:hidden;text-overflow:ellipsis}
+.castbar u{margin-left:6px;color:#9fb3ff}
+.castbar.hidden{display:none}
+@media(max-width:820px){.castbar{bottom:62px}}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.112.3/dist/umd/supabase.js"></script>
 </head>
@@ -338,6 +379,7 @@ aside{flex:1;padding:20px;min-width:0}
     <button class="nav-item" data-view="home">ホーム</button>
     <button class="nav-item" data-view="notif">通知<span class="badge hidden" id="nBadge">0</span></button>
     <button class="nav-item" data-view="dm">DM<span class="badge hidden" id="dBadge">0</span></button>
+    <button class="nav-item" data-view="cast">キャスト<span class="livedot hidden" id="cDot"></span></button>
     <button class="nav-item" data-view="quest">クエスト</button>
     <button class="nav-item" data-view="me">プロフィール</button>
     <button class="btn nav-post" id="openCompose">ポストする</button>
@@ -426,7 +468,7 @@ async function ensureProfiles(ids){
   const now = Date.now();
   const need = [...new Set(ids)].filter(id => id && (!PROF[id] || now - PROF[id].t > 120000));
   if(!need.length) return;
-  const rows = await q(sb.from('profiles').select('id,name,bio,avatar,frame,hat,badge,effect').in('id', need));
+  const rows = await q(sb.from('profiles').select('id,name,bio,avatar,frame,hat,badge,effect,pfx').in('id', need));
   rows.forEach(p => PROF[p.id] = Object.assign({}, p, { t: now }));
 }
 const normPost = p => ({
@@ -594,7 +636,7 @@ async function loadMe(){
   const { data } = await sb.auth.getSession();
   const user = data.session && data.session.user;
   if(!user) throw new Error('ログインできませんでした');
-  const p = await q(sb.from('profiles').select('id,name,bio,avatar,pinned_post_id,frame,hat,badge,effect').eq('id', user.id).maybeSingle());
+  const p = await q(sb.from('profiles').select('id,name,bio,avatar,pinned_post_id,frame,hat,badge,effect,pfx').eq('id', user.id).maybeSingle());
   if(!p) throw new Error('プロフィールが見つかりません');
   me = Object.assign({}, p, { email: user.email });
   PROF[me.id] = Object.assign({}, p, { t: Date.now() });
@@ -604,9 +646,11 @@ async function loadMe(){
 
 async function doLogout(silent){
   stopPresence();
+  try{ if(cast.role === 'host') await castEnd(''); else if(cast.role === 'viewer') castLeave(''); }catch(e){}
+  castSt = null; castSig = ''; { const b = $('#castBar'); if(b) b.remove(); }
   impSeen.clear(); impQueue.clear(); Object.keys(impTimers).forEach(k => { clearTimeout(impTimers[k]); delete impTimers[k]; });
   try{ if(typingCh){ sb.removeChannel(typingCh); } }catch(e){} typingCh = null; typingKey = ''; dmReply = null;
-  me = null; isAdmin = false; fil = null; myBlocks = new Set(); feed = []; profile = null; notifs = []; convs = []; chat = null; unread = 0; unreadDM = 0; editing = false;
+  me = null; isAdmin = false; fil = null; pfxShown = ''; myBlocks = new Set(); feed = []; profile = null; notifs = []; convs = []; chat = null; unread = 0; unreadDM = 0; editing = false;
   Object.keys(cimg).forEach(dropImg);
   if(!silent && sb){ try{ await sb.auth.signOut({ scope: 'local' }); }catch(e){} }
   $('#app').classList.add('hidden'); $('#fab').classList.add('hidden'); $('#modalHost').innerHTML = '';
@@ -637,7 +681,7 @@ $('#fab').onclick = openComposeModal;
 /* 右下の＋は、ホームのときだけ */
 function syncFab(){ $('#fab').classList.toggle('hidden', !me || view !== 'home'); }
 
-const TITLES = { home:'ホーム', notif:'通知', dm:'DM', quest:'クエスト', me:'プロフィール' };
+const TITLES = { home:'ホーム', notif:'通知', dm:'DM', cast:'フィルキャスト', quest:'クエスト', me:'プロフィール' };
 const headHTML = t => `<div class="head">${t}</div>`;
 const homeTop = () => headHTML('ホーム') + `<div id="onlineBox"></div>` +
   `<div class="subtabs"><button class="${homeTab==='all'?'on':''}" onclick="setTab('all')">すべて</button><button class="${homeTab==='following'?'on':''}" onclick="setTab('following')">フォロー中</button></div>`;
@@ -645,8 +689,9 @@ function setTab(t){ if(homeTab === t) return; homeTab = t; feed = []; feedCtx = 
 
 /* 画面を切り替える：読み込み中表示 → データ取得 → 描画 */
 function go(){
+  castStash();
   syncFab();
-  const had = (view==='home' && feed.length) || (view==='me' && profile && profile.user.id===(profileId||me.id)) || (view==='notif' && notifs.length) || (view==='dm' && (dmWith ? chat : convs.length)) || (view==='quest' && fil);
+  const had = (view==='home' && feed.length) || (view==='me' && profile && profile.user.id===(profileId||me.id)) || (view==='notif' && notifs.length) || (view==='dm' && (dmWith ? chat : convs.length)) || (view==='quest' && fil) || (view==='cast' && castSt);
   if(!had) $('#main').innerHTML = (view==='home' ? homeTop() : headHTML(TITLES[view])) + '<div class="empty">読み込み中…</div>';
   chatShown = null;
   refresh(false);
@@ -712,6 +757,11 @@ async function refresh(silent){
       if(view !== v || !me) return;
       notifs = rows;
     }
+    else if(v === 'cast'){
+      await castPoll();
+      if(view !== v || !me) return;
+      if(silent && castSig === castSigOf() && $('#castBox')) return;
+    }
     else if(v === 'quest'){
       const r = await sb.rpc('fil_overview');
       if(r.error) throw r.error;
@@ -768,6 +818,7 @@ function setBadge(){
 
 function render(){
   if(!me) return;
+  castStash();
   syncFab();
   document.querySelectorAll('.nav-item').forEach(b => b.classList.toggle('on', b.dataset.view === view && (view !== 'me' || !profileId || profileId === me.id)));
   setBadge();
@@ -785,13 +836,15 @@ function render(){
   else if(view === 'notif') m.innerHTML = headHTML('通知') + notifHTML();
   else if(view === 'dm') dmWith ? renderChat(m) : renderConvs(m);
   else if(view === 'quest') renderQuest(m);
+  else if(view === 'cast') renderCast(m);
   else if(view === 'me') renderProfile(m);
   if(pendingScroll && view === 'home'){
     const e = $('#p-' + pendingScroll);
     if(e) e.scrollIntoView({ block:'center' }); else toast('この投稿は見つかりませんでした');
     pendingScroll = null;
   }
-  observePosts(); observeMore(); paintOnline();
+  observePosts(); observeMore(); paintOnline(); pfxCheck(); castBar();
+  if(isAdmin && view === 'me' && profile && !profile.own) loadAdmFil(profile.user.id);
 }
 
 /* ========== 投稿フォーム ========== */
@@ -1310,6 +1363,7 @@ function renderProfile(m){
         <span class="lk" onclick="showFollows('${u.id}','followers')"><b>${profile.followers}</b> フォロワー</span>
         <span><b>${profile.likes}</b> いいね</span>
       </div>
+      ${u.pfx ? `<div style="margin:2px 0 10px"><button class="btn inline ghost" style="margin:0;padding:4px 14px" onclick="playPfx('${esc(u.pfx)}')">✨ 演出をもう一度</button></div>` : ''}
       ${own ? `<div class="btn-row" style="justify-content:center"><button class="btn inline" onclick="startEdit()">プロフィールを編集</button></div><label class="tog"><input type="checkbox" ${showOnline ? 'checked' : ''} onchange="setShowOnline(this.checked)"> オンライン中であることを他の人に表示する</label><div><button class="btn inline ghost" onclick="showBlocks()">ブロックした人（${myBlocks.size}）</button></div>${isAdmin ? '<div><button class="btn inline ghost-danger" onclick="openBan()">アカウント管理（まとめてBAN）</button></div>' : ''}<button class="logout" onclick="logout()">ログアウト</button>`
             : `<div class="btn-row" style="justify-content:center;flex-wrap:wrap">
                  ${profile.blocked ? '' : `<button class="btn inline ${profile.followed?'following':''}" onclick="toggleFollow('${u.id}')">${profile.followed ? 'フォロー中（タップで解除）' : 'フォローする'}</button>
@@ -1317,7 +1371,8 @@ function renderProfile(m){
                </div>
                ${profile.blocked ? '<p class="bio">この人をブロックしています</p>' : ''}
                ${isAdmin ? '' : `<div><button class="btn inline ghost-danger" onclick="toggleBlock('${u.id}')">${profile.blocked ? 'ブロックを解除する' : 'ブロックする'}</button></div>`}
-               ${isAdmin ? `<div><button class="btn inline ghost-danger" onclick="adminDeleteUser('${u.id}')">このアカウントを削除（管理者）</button></div>` : ''}`}
+                ${isAdmin ? `<div id="admFil" style="margin:8px 0"></div>` : ''}
+              ${isAdmin ? `<div><button class="btn inline ghost-danger" onclick="adminDeleteUser('${u.id}')">このアカウントを削除（管理者）</button></div>` : ''}`}
     </div>`;
   }
   m.innerHTML = headHTML(own ? 'プロフィール' : esc(u.name)) + top +
@@ -1397,7 +1452,7 @@ async function banLoad(){
 function banPaint(){
   const box = $('#banBox'); if(!box) return;
   const d = x => new Date(x).toLocaleDateString('ja-JP');
-  box.innerHTML = banList.length ? banList.map(u => `<label class="conv ban-row"><input type="checkbox" ${banSel.has(u.id) ? 'checked' : ''} onchange="banTick('${u.id}', this.checked)"><div style="min-width:0;flex:1"><b>${esc(u.name)}</b><div class="small-sub">投稿 ${u.posts}件 ・ ${d(u.created_at)}登録</div></div></label>`).join('')
+  box.innerHTML = banList.length ? banList.map(u => `<label class="conv ban-row"><input type="checkbox" ${banSel.has(u.id) ? 'checked' : ''} onchange="banTick('${u.id}', this.checked)"><div style="min-width:0;flex:1"><b>${esc(u.name)}</b><div class="small-sub">投稿 ${u.posts}件 ・ ${d(u.created_at)}登録 ・ ${u.fil} fil</div></div><button class="btn inline ghost ban-fil" onclick="event.preventDefault();event.stopPropagation();adminSetFil('${u.id}', ${u.fil})">fil変更</button></label>`).join('')
                               : '<div class="empty">該当する人がいません</div>';
   banCount();
 }
@@ -1419,9 +1474,359 @@ async function banRun(){
   }catch(e){ toast(fail(e)); banCount(); }
 }
 
+
+/* ========== 管理者: 人のfilを変える ========== */
+async function adminSetFil(id, cur){
+  if(!isAdmin) return;
+  const name = (banList.find(u => u.id === id) || PROF[id] || {}).name || 'この人';
+  const v = prompt(`「${name}」のfilを何fil にしますか？（いまは ${cur} fil）\n0 〜 100000000 の数字を入れてください`, String(cur));
+  if(v === null) return;
+  const n = Number(String(v).trim());
+  if(!/^\d+$/.test(String(v).trim()) || !Number.isSafeInteger(n) || n > 100000000){ toast('0 〜 100000000 の数字を入れてください'); return; }
+  try{
+    await q(sb.rpc('admin_set_fil', { target: id, amount: n }));
+    toast(`「${name}」のfilを ${n} にしました`);
+    if($('#banBox')) await banLoad();
+    if(view === 'me' && profile && profile.user.id === id) loadAdmFil(id);
+  }catch(e){ toast(fail(e)); }
+}
+async function loadAdmFil(id){
+  const el = $('#admFil'); if(!el || !isAdmin) return;
+  try{
+    const n = await q(sb.rpc('admin_get_fil', { target: id }));
+    const el2 = $('#admFil'); if(!el2 || !profile || profile.user.id !== id) return;
+    el2.innerHTML = `<span class="small-sub">fil：<b>${n}</b></span> <button class="btn inline ghost" style="margin:0;padding:4px 12px" onclick="adminSetFil('${id}', ${n})">filを変更</button>`;
+  }catch(e){}
+}
+
+
+/* ========== プロフィール演出（プロフィールを開くとアニメが出る） ========== */
+const PFX_ICON = { pfx_confetti:'🎉', pfx_sakura:'🌸', pfx_stars:'🌠', pfx_hearts:'💖', pfx_snow:'❄️', pfx_bubbles:'🫧', pfx_fireworks:'🎆' };
+let pfxShown = '', pfxTimer = null;
+function playPfx(id){
+  if(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const old = $('#pfxo'); if(old) old.remove(); clearTimeout(pfxTimer);
+  const r = (a, b) => a + Math.random() * (b - a);
+  const mk = [];                        // [絵文字か記号, style, 秒数+遅れ]
+  const add = (ch, cls, st, dur, del) => mk.push([ch, cls, st, dur + del, `animation-duration:${dur}s;animation-delay:${del}s;${st}`]);
+  const falls = (chars, n, minD, maxD, size) => { for(let i = 0; i < n; i++) add(chars[i % chars.length], 'pf-fall', `left:${r(0,100)}%;font-size:${r(size[0], size[1])}px;--sw:${r(-60,60)}px;--rt:${r(-360,360)}deg`, r(minD, maxD), r(0, 1.6)); };
+  if(id === 'pfx_confetti') falls(['🎉','🎊','✨','🎈'], 46, 2.4, 4, [18, 30]);
+  else if(id === 'pfx_sakura') falls(['🌸','🌸','🌷'], 34, 3, 5, [18, 30]);
+  else if(id === 'pfx_hearts') falls(['💖','💗','💕','💓'], 30, 2.6, 4.2, [18, 32]);
+  else if(id === 'pfx_snow') falls(['❄️','❅','❆'], 44, 3.4, 5.4, [14, 28]);
+  else if(id === 'pfx_stars'){ for(let i = 0; i < 14; i++) add(['⭐','🌟','✨'][i % 3], 'pf-shoot', `left:${r(0,90)}%;top:${r(-10,45)}%;font-size:${r(18,32)}px`, r(0.9, 1.6), r(0, 2.2)); }
+  else if(id === 'pfx_bubbles'){ for(let i = 0; i < 26; i++){ const s = r(22, 60); add('', 'pf-bubble', `left:${r(0,95)}%;width:${s}px;height:${s}px;--sw:${r(-40,40)}px`, r(3, 5.5), r(0, 2)); } }
+  else if(id === 'pfx_fireworks'){
+    const cols = ['#ff5252','#ffd740','#69f0ae','#40c4ff','#e040fb','#ffffff'];
+    for(let b = 0; b < 6; b++){
+      const cx = r(15, 85), cy = r(15, 55), col = cols[b % cols.length], del = b * 0.55;
+      for(let i = 0; i < 18; i++){ const a = i / 18 * Math.PI * 2, d = r(70, 130); add('', 'pf-burst', `left:${cx}%;top:${cy}%;background:${col};box-shadow:0 0 8px ${col};--dx:${Math.cos(a)*d}px;--dy:${Math.sin(a)*d}px`, 1.1, del); }
+    }
+  }
+  else return;
+  const el = document.createElement('div'); el.id = 'pfxo'; el.className = 'pfxo';
+  el.innerHTML = mk.map(m => `<span class="${m[1]}" style="${m[4]}">${m[0]}</span>`).join('');
+  document.body.appendChild(el);
+  const total = Math.max(...mk.map(m => m[3])) * 1000 + 400;
+  pfxTimer = setTimeout(() => { const e = $('#pfxo'); if(e) e.remove(); }, total);
+}
+function pfxCheck(){
+  if(view === 'me' && profile && profile.user && profile.user.pfx){
+    if(pfxShown !== profile.user.id){ pfxShown = profile.user.id; playPfx(profile.user.pfx); }
+  } else if(view !== 'me' || !profile){ pfxShown = ''; }
+}
+
+/* ========== フィルキャスト（画面共有・音声だけのライブ配信。1人だけ・1回10分まで） ========== */
+/* 映像と音声は、配信する人と見る人が直接つながる（WebRTC）。サーバーは「いま誰が配信中か」と時間の管理だけ */
+const CAST_MAX_VIEWERS = 8;
+const ICE = { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }, { urls: 'stun:stun1.l.google.com:19302' }] };
+let castSt = null, castOff = 0, castSig = '';
+const cast = { role:'none', mode:'', hostId:'', hostName:'', endMs:0, startedAt:0, ch:null, pcs:{}, ice:{}, stream:null, ac:null, ping:null, join:null, viewers:new Set(), q:[], qt:null, connected:false, note:'' };
+const castEls = () => {
+  let box = $('#castMedia');
+  if(!box){ box = document.createElement('div'); box.id = 'castMedia'; box.style.cssText = 'position:fixed;left:-9999px;top:0;width:2px;height:2px;overflow:hidden';
+    box.innerHTML = '<video id="castVideo" autoplay playsinline controls class="cast-video"></video>'; document.body.appendChild(box); }
+  return box;
+};
+const castStash = () => { const v = $('#castVideo'); if(v && !v.closest('#castMedia')) castEls().appendChild(v); };   // 画面を描き直す前に、動画を避難させる（再生を止めない）
+const mmss = ms => { const s = Math.max(0, Math.ceil(ms / 1000)); return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0'); };
+const castLeft = () => cast.endMs - Date.now();
+
+async function castPoll(){
+  if(!me || !sb) return;
+  try{
+    const r = await sb.rpc('cast_get'); if(r.error || !r.data) return;
+    const d = r.data, prev = castSt;
+    castOff = Date.parse(d.now) - Date.now(); castSt = d;
+    const dot = $('#cDot'); if(dot) dot.classList.toggle('hidden', !(d.live && d.host !== me.id));
+    if(prev && !prev.live && d.live && d.host !== me.id && cast.role === 'none' && view !== 'cast') toast(`${d.host_name || '誰か'} さんがフィルキャストを始めました`);
+    if(cast.role === 'viewer' && (!d.live || d.host !== cast.hostId)) castLeave('配信が終わりました');
+    if(cast.role === 'host' && Date.now() - cast.startedAt > 6000 && (!d.live || d.host !== me.id)) castEnd('配信が終わりました');
+    if(view === 'cast') castRenderIfChanged();
+  }catch(e){}
+}
+const castSigOf = () => [cast.role, cast.note, castSt && castSt.live, castSt && castSt.host, castSt && castSt.mode, castSt && castSt.wait > 0].join('|');
+function castRenderIfChanged(){ const sg = castSigOf(); if(sg !== castSig || !$('#castBox')) render(); }
+
+/* ----- 合図（シグナリング）。Realtimeのbroadcastで、つなぐための情報だけをやりとりする ----- */
+function castOpen(onReady){
+  castClose();
+  try{
+    cast.ch = sb.channel('filx-cast', { config:{ broadcast:{ self:false } } });
+    cast.ch.on('broadcast', { event:'sig' }, m => { try{ castOnSig(m.payload || {}); }catch(e){} });
+    cast.ch.subscribe(st => { if(st === 'SUBSCRIBED' && onReady) onReady(); });
+    cast.qt = setInterval(() => { const p = cast.q.shift(); if(p && cast.ch){ try{ cast.ch.send({ type:'broadcast', event:'sig', payload:p }); }catch(e){} } }, 70);
+  }catch(e){ cast.ch = null; toast('つなぐ準備に失敗しました'); }
+}
+function castClose(){
+  clearInterval(cast.qt); cast.qt = null; cast.q = [];
+  if(cast.ch){ try{ sb.removeChannel(cast.ch); }catch(e){} cast.ch = null; }
+}
+const castSend = p => { cast.q.push(Object.assign({ from: me.id }, p)); };
+function castOnSig(p){
+  if(!me || !p || p.from === me.id) return;
+  if(p.to && p.to !== me.id) return;
+  if(cast.role === 'host'){
+    if(p.type === 'join') hostAdd(String(p.from));
+    else if(p.type === 'answer') hostAnswer(String(p.from), p.sdp);
+    else if(p.type === 'ice') addIce(String(p.from), p.cand);
+    else if(p.type === 'leave') hostDrop(String(p.from));
+  } else if(cast.role === 'viewer' && p.from === cast.hostId){
+    if(p.type === 'offer') viewerOffer(p.sdp);
+    else if(p.type === 'ice') addIce('host', p.cand);
+    else if(p.type === 'full') castLeave('いまは満員です（最大' + CAST_MAX_VIEWERS + '人）');
+    else if(p.type === 'end') castLeave('配信が終わりました');
+  }
+}
+async function addIce(key, cand){
+  const pc = key === 'host' ? cast.pcs.host : cast.pcs[key];
+  if(!pc || !cand) return;
+  if(!pc.remoteDescription){ (cast.ice[key] = cast.ice[key] || []).push(cand); return; }
+  try{ await pc.addIceCandidate(cand); }catch(e){}
+}
+async function flushIce(key, pc){
+  const l = cast.ice[key] || []; cast.ice[key] = [];
+  for(const c of l){ try{ await pc.addIceCandidate(c); }catch(e){} }
+}
+
+/* ----- 配信する側 ----- */
+async function castCapture(mode, withMic){
+  const md = navigator.mediaDevices;
+  if(!md) throw new Error('このブラウザでは使えません');
+  if(mode === 'audio'){
+    return await md.getUserMedia({ audio:{ echoCancellation:true, noiseSuppression:true }, video:false });
+  }
+  if(!md.getDisplayMedia) throw new Error('この端末では画面共有はできません（PCのブラウザで使えます）');
+  const disp = await md.getDisplayMedia({ video:{ frameRate:{ ideal:15, max:20 }, width:{ max:1920 } }, audio:true });
+  if(!withMic) return disp;
+  let mic = null; try{ mic = await md.getUserMedia({ audio:{ echoCancellation:true, noiseSuppression:true } }); }catch(e){}
+  if(!mic) return disp;
+  const AC = window.AudioContext || window.webkitAudioContext;
+  const ac = new AC(), dest = ac.createMediaStreamDestination();
+  [disp, mic].forEach(s => { if(s.getAudioTracks().length) ac.createMediaStreamSource(new MediaStream(s.getAudioTracks())).connect(dest); });
+  const out = new MediaStream([...disp.getVideoTracks(), ...dest.stream.getAudioTracks()]);
+  out.__extra = { ac, srcs:[disp, mic] };
+  return out;
+}
+async function castBegin(mode){
+  if(cast.role !== 'none'){ toast('いま配信中か、視聴中です'); return; }
+  if(!sb || !sb.channel){ toast('この環境では使えません'); return; }
+  const withMic = !!($('#castMic') && $('#castMic').checked);
+  let stream;
+  try{ stream = await castCapture(mode, withMic); }
+  catch(e){ toast(e && e.name === 'NotAllowedError' ? '許可されなかったので始められません' : (e && e.message) || '始められませんでした'); return; }
+  let st;
+  try{
+    const r = await sb.rpc('cast_start', { m: mode }); if(r.error) throw r.error; st = r.data;
+  }catch(e){ castStopTracks(stream); toast(fail(e)); castPoll(); return; }
+  castSt = st; castOff = Date.parse(st.now) - Date.now();
+  Object.assign(cast, { role:'host', mode, hostId:me.id, hostName:me.name, stream, endMs: Date.parse(st.ends_at) - castOff, startedAt: Date.now(), connected:true, note:'' });
+  cast.viewers = new Set(); cast.pcs = {}; cast.ice = {};
+  stream.getTracks().forEach(t => { t.onended = () => { if(cast.role === 'host' && cast.stream === stream) castEnd('共有を止めました'); }; });
+  cast.ping = setInterval(async () => {
+    try{ const r = await sb.rpc('cast_ping'); if(r.error) throw r.error; }catch(e){ if(cast.role === 'host') castEnd('配信が終わりました'); }
+  }, 15000);
+  castOpen();
+  toast('配信を始めました（最大10分）');
+  go();
+}
+function castStopTracks(stream){
+  if(!stream) return;
+  stream.getTracks().forEach(t => { try{ t.onended = null; t.stop(); }catch(e){} });
+  if(stream.__extra){ stream.__extra.srcs.forEach(s => s.getTracks().forEach(t => { try{ t.stop(); }catch(e){} })); try{ stream.__extra.ac.close(); }catch(e){} }
+}
+function mkPC(key, onGone){
+  const pc = new RTCPeerConnection(ICE);
+  pc.onicecandidate = e => { if(e.candidate) castSend({ type:'ice', to: key === 'host' ? cast.hostId : key, cand: e.candidate.toJSON() }); };
+  pc.onconnectionstatechange = () => {
+    if(pc.connectionState === 'failed' || pc.connectionState === 'closed') onGone('failed');
+    else if(pc.connectionState === 'disconnected'){ setTimeout(() => { if(pc.connectionState === 'disconnected') onGone('lost'); }, 6000); }
+  };
+  return pc;
+}
+async function hostAdd(vid){
+  if(!cast.stream || !vid) return;
+  if(cast.pcs[vid]){ try{ cast.pcs[vid].close(); }catch(e){} delete cast.pcs[vid]; }
+  if(Object.keys(cast.pcs).length >= CAST_MAX_VIEWERS){ castSend({ type:'full', to: vid }); return; }
+  const pc = mkPC(vid, () => hostDrop(vid));
+  cast.pcs[vid] = pc; cast.ice[vid] = [];
+  cast.stream.getTracks().forEach(t => pc.addTrack(t, cast.stream));
+  try{
+    const off = await pc.createOffer(); await pc.setLocalDescription(off);
+    castSend({ type:'offer', to: vid, sdp: { type: off.type, sdp: off.sdp } });
+    pc.getSenders().forEach(sn => { if(sn.track && sn.track.kind === 'video'){ try{ const pr = sn.getParameters(); pr.encodings = pr.encodings && pr.encodings.length ? pr.encodings : [{}]; pr.encodings[0].maxBitrate = 1500000; sn.setParameters(pr).catch(() => {}); }catch(e){} } });
+  }catch(e){ hostDrop(vid); return; }
+  cast.viewers.add(vid); castViewerCount();
+}
+async function hostAnswer(vid, sdp){
+  const pc = cast.pcs[vid]; if(!pc || !sdp) return;
+  try{ await pc.setRemoteDescription(sdp); await flushIce(vid, pc); }catch(e){ hostDrop(vid); }
+}
+function hostDrop(vid){
+  const pc = cast.pcs[vid]; if(pc){ try{ pc.close(); }catch(e){} delete cast.pcs[vid]; }
+  delete cast.ice[vid]; cast.viewers.delete(vid); castViewerCount();
+}
+function castViewerCount(){
+  const el = $('#castViewers'); if(!el) return;
+  const ids = [...cast.viewers];
+  ensureProfiles(ids).catch(() => {}).then(() => {
+    const e2 = $('#castViewers'); if(!e2) return;
+    e2.textContent = ids.length ? `見ている人：${ids.length}人（${ids.slice(0, 5).map(i => U(i).name).join('、')}${ids.length > 5 ? ' ほか' : ''}）` : '見ている人：まだいません';
+  });
+}
+async function castEnd(msg){
+  if(cast.role !== 'host') return;
+  castSend({ type:'end' });
+  await new Promise(r => setTimeout(r, 250));
+  clearInterval(cast.ping); cast.ping = null;
+  Object.keys(cast.pcs).forEach(k => { try{ cast.pcs[k].close(); }catch(e){} });
+  castStopTracks(cast.stream);
+  Object.assign(cast, { role:'none', stream:null, pcs:{}, ice:{}, viewers:new Set(), note:'' });
+  castClose();
+  try{ await sb.rpc('cast_stop'); }catch(e){}
+  if(msg) toast(msg);
+  castPoll(); castBar(); if(view === 'cast') render();
+}
+async function castAdminStop(){
+  try{ await q(sb.rpc('cast_stop')); toast('配信を止めました'); castPoll(); }catch(e){ toast(fail(e)); }
+}
+
+/* ----- 見る側 ----- */
+function castWatch(){
+  if(cast.role !== 'none'){ toast('いま配信中か、視聴中です'); return; }
+  const st = castSt;
+  if(!st || !st.live || st.host === me.id){ toast('いま見られる配信はありません'); return; }
+  if(!window.RTCPeerConnection){ toast('このブラウザでは見られません'); return; }
+  Object.assign(cast, { role:'viewer', mode:st.mode, hostId:st.host, hostName:st.host_name || '', endMs: Date.parse(st.ends_at) - castOff, connected:false, note:'つなぎ中…' });
+  cast.pcs = {}; cast.ice = {};
+  const v = castEls().querySelector('video') || $('#castVideo'); if(v){ v.muted = false; }
+  let tries = 0;
+  castOpen(() => {
+    const tryJoin = () => {
+      if(cast.role !== 'viewer' || cast.connected) return;
+      if(++tries > 6){ cast.note = 'つながりませんでした。学校のネットワークでは使えないことがあります'; castRefreshNote(); return; }
+      castSend({ type:'join', to: cast.hostId }); cast.join = setTimeout(tryJoin, 3500);
+    };
+    tryJoin();
+  });
+  go();
+}
+async function viewerOffer(sdp){
+  if(cast.role !== 'viewer' || !sdp) return;
+  clearTimeout(cast.join);
+  if(cast.pcs.host){ try{ cast.pcs.host.close(); }catch(e){} }
+  const pc = mkPC('host', why => { if(cast.role === 'viewer') castLeave(why === 'lost' ? '配信とのつながりが切れました' : 'つながりませんでした'); });
+  cast.pcs.host = pc; cast.ice.host = [];
+  pc.ontrack = e => {
+    const v = $('#castVideo'); if(!v) return;
+    if(v.srcObject !== e.streams[0]) v.srcObject = e.streams[0];
+    cast.connected = true; cast.note = '';
+    v.play().catch(() => { cast.note = '▶ を押すと音が出ます'; castRefreshNote(); });
+    castRefreshNote();
+  };
+  try{
+    await pc.setRemoteDescription(sdp); await flushIce('host', pc);
+    const ans = await pc.createAnswer(); await pc.setLocalDescription(ans);
+    castSend({ type:'answer', to: cast.hostId, sdp: { type: ans.type, sdp: ans.sdp } });
+  }catch(e){ castLeave('つながりませんでした'); }
+}
+function castLeave(msg){
+  if(cast.role !== 'viewer') return;
+  try{ castSend({ type:'leave', to: cast.hostId }); }catch(e){}
+  const keep = cast.ch;                                   // 「離れた」の合図を送ってから閉じる
+  clearTimeout(cast.join);
+  if(cast.pcs.host){ try{ cast.pcs.host.close(); }catch(e){} }
+  const v = $('#castVideo'); if(v){ try{ v.pause(); }catch(e){} v.srcObject = null; }
+  Object.assign(cast, { role:'none', pcs:{}, ice:{}, connected:false, note:'' });
+  setTimeout(() => { if(cast.role === 'none') castClose(); }, 300);
+  if(msg) toast(msg);
+  castBar(); if(view === 'cast') render();
+}
+function castRefreshNote(){ const n = $('#castNote'); if(n) n.textContent = cast.note || ''; }
+
+/* ----- 画面 ----- */
+function castTick(){
+  if(!me) return;
+  if(cast.role !== 'none'){
+    const left = castLeft();
+    const t = $('#castTimer'); if(t) t.textContent = '残り ' + mmss(left);
+    if(left <= 0){ if(cast.role === 'host') castEnd('10分になったので終了しました'); else castLeave('配信が終わりました（10分）'); return; }
+  } else if(castSt && castSt.live){
+    const t = $('#castTimer'); if(t) t.textContent = '残り ' + mmss(Date.parse(castSt.ends_at) - castOff - Date.now());
+  }
+  castBar();
+}
+function castBar(){
+  let b = $('#castBar');
+  const on = cast.role !== 'none' && view !== 'cast';
+  if(!b){ if(!on) return; b = document.createElement('div'); b.id = 'castBar'; b.className = 'castbar';
+    b.onclick = () => { view = 'cast'; dmWith = null; go(); window.scrollTo(0, 0); }; document.body.appendChild(b); }
+  b.classList.toggle('hidden', !on);
+  if(on) b.innerHTML = `<span class="rec">●</span> ${cast.role === 'host' ? 'フィルキャスト配信中' : esc(cast.hostName) + ' さんの配信を視聴中'} ・ 残り ${mmss(castLeft())} <u>開く</u>`;
+}
+function renderCast(m){
+  const vid = $('#castVideo'); if(vid) castEls().appendChild(vid);          // 描き直しても再生が途切れないよう、いったん避難
+  castSig = castSigOf();
+  const st = castSt;
+  let card = '';
+  const canScreen = !!(navigator.mediaDevices && navigator.mediaDevices.getDisplayMedia);
+  if(cast.role === 'host'){
+    card = `<div class="cast-card live"><div class="cast-h"><span class="rec">●</span> 配信中（${cast.mode === 'screen' ? '画面共有' : '音声だけ'}）<span class="cast-timer" id="castTimer">残り ${mmss(castLeft())}</span></div>
+      <div class="small-sub" id="castViewers">見ている人：まだいません</div>
+      ${cast.mode === 'screen' ? '<video id="castPrev" class="cast-video prev" autoplay muted playsinline></video>' : '<div class="cast-audio">🎙 音声だけ配信中</div>'}
+      <div class="cast-btns"><button class="btn inline ghost-danger" onclick="castEnd('配信をやめました')">配信をやめる</button></div>
+      <p class="cast-help">10分で自動的に終わります。ブラウザの「共有を停止」でも終われます。</p></div>`;
+  } else if(cast.role === 'viewer'){
+    card = `<div class="cast-card live"><div class="cast-h"><span class="rec">●</span> ${esc(cast.hostName)} さんの配信（${cast.mode === 'screen' ? '画面共有' : '音声だけ'}）<span class="cast-timer" id="castTimer">残り ${mmss(castLeft())}</span></div>
+      <div id="castSlot" class="cast-slot${cast.mode === 'audio' ? ' audio' : ''}"></div>
+      <div class="small-sub" id="castNote">${esc(cast.note)}</div>
+      <div class="cast-btns"><button class="btn inline ghost" onclick="castLeave('')">見るのをやめる</button></div></div>`;
+  } else if(st && st.live){
+    card = `<div class="cast-card live"><div class="cast-h"><span class="rec">●</span> ${esc(st.host_name || '誰か')} さんが配信中（${st.mode === 'screen' ? '画面共有' : '音声だけ'}）<span class="cast-timer" id="castTimer">残り ${mmss(Date.parse(st.ends_at) - castOff - Date.now())}</span></div>
+      <div class="cast-btns"><button class="btn inline" onclick="castWatch()">見る</button>${isAdmin ? '<button class="btn inline ghost-danger" onclick="castAdminStop()">この配信を止める（管理者）</button>' : ''}</div>
+      <p class="cast-help">配信は同時に1人だけです。終わるまで、新しく始めることはできません。</p></div>`;
+  } else {
+    const wait = st && st.wait > 0;
+    card = `<div class="cast-card"><div class="cast-h">いま配信している人はいません</div>
+      ${wait ? `<p class="cast-help">つづけて配信はできません。あと ${Math.ceil(st.wait / 60)} 分待ってね。</p>` : ''}
+      <div class="cast-btns"><button class="btn inline" ${canScreen && !wait ? '' : 'disabled'} onclick="castBegin('screen')">🖥 画面を共有する</button><button class="btn inline" ${wait ? 'disabled' : ''} onclick="castBegin('audio')">🎙 音声だけ配信する</button></div>
+      <label class="tog" style="margin-top:10px"><input type="checkbox" id="castMic"> 画面共有のときに、マイクの声も入れる</label>
+      ${canScreen ? '' : '<p class="cast-help">この端末では画面共有はできません（見る・音声だけの配信はできます）。</p>'}</div>`;
+  }
+  m.innerHTML = headHTML('フィルキャスト') + `<div id="castBox">${card}
+    <div class="cast-info"><b>フィルキャストとは？</b><br>画面や声を、みんなにライブで見せられる機能です。<br>・同時に配信できるのは、filx全体で<b>1人だけ</b>です<br>・1回の配信は<b>最大10分</b>。時間がきたら自動で終わります<br>・見られるのは最大${CAST_MAX_VIEWERS}人まで<br>・配信が終わったあと、同じ人は5分待つと、また始められます<br>・学校のネットワークによっては、つながらないことがあります</div></div>`;
+  const slot = $('#castSlot'), v = $('#castVideo');
+  if(slot && v) slot.appendChild(v);
+  const pv = $('#castPrev'); if(pv && cast.stream){ pv.srcObject = cast.stream; pv.play().catch(() => {}); }
+  castViewerCount();
+}
+setInterval(() => { if(me) castPoll(); }, 4000);
+setInterval(castTick, 1000);
+document.addEventListener('visibilitychange', () => { if(!document.hidden && me) castPoll(); });
+
 /* ========== クエスト・fil・アイコンの飾り ========== */
 let fil = null, questTab = 'quest', shopKind = 'frame';
-const KINDS = [['frame','フレーム'], ['hat','あたまの飾り'], ['badge','バッジ'], ['effect','エフェクト']];
+const KINDS = [['frame','フレーム'], ['hat','あたまの飾り'], ['badge','バッジ'], ['effect','エフェクト'], ['pfx','プロフィール演出']];
 const stars = r => '★'.repeat(r >= 150 ? 5 : r >= 40 ? 4 : r >= 12 ? 3 : r >= 5 ? 2 : 1);
 function syncEquipped(){
   const e = (fil && fil.equipped) || {};
@@ -1448,7 +1853,8 @@ function itemCard(f){
   const prev = { id: me.id, name: me.name, avatar: me.avatar, [f.kind]: f.id };
   const act = f.owned ? (mineOn ? `<button class="btn inline ghost" onclick="equipItem('${f.kind}', null)">外す</button>` : `<button class="btn inline" onclick="equipItem('${f.kind}', '${f.id}')">つける</button>`)
                       : `<button class="btn inline${can ? '' : ' ghost'}" onclick="buyItem('${f.id}')">${f.price} fil で買う</button>`;
-  return `<div class="shopitem${mineOn ? ' on' : ''}"><div class="avatar big" style="${avBG(prev)}">${avTxt(prev)}</div>
+  const pv = f.kind === 'pfx' ? `<div class="pfx-prev"><button class="btn inline ghost" onclick="playPfx('${f.id}')">▶ 見てみる</button></div>` : '';
+  return `<div class="shopitem${mineOn ? ' on' : ''}${f.kind === 'pfx' ? ' pfxitem' : ''}">${f.kind === 'pfx' ? `<div class="pfx-ico">${PFX_ICON[f.id] || '✨'}</div>` : `<div class="avatar big" style="${avBG(prev)}">${avTxt(prev)}</div>`}${pv}
     <div class="s-name">${esc(f.name)}</div><div class="s-desc">${esc(f.descr)}</div>
     <div class="s-price">${f.owned ? (mineOn ? '装備中' : '持っています') : f.price + ' fil'}</div>${act}</div>`;
 }
