@@ -196,6 +196,64 @@ aside{flex:1;padding:20px;min-width:0}
 .onl-head{padding:12px 20px 4px;color:var(--sub);font-size:12px;font-weight:700}
 .onl-list{display:flex;gap:8px;overflow-x:auto;padding:4px 20px 12px;border-bottom:1px solid var(--line)}
 .onl-chip{display:flex;align-items:center;gap:2px;flex-shrink:0;padding:5px 12px 5px 6px;border:1px solid var(--line);border-radius:20px;background:var(--card);color:var(--text);font-size:13px}
+
+/* ===== アイコンフレーム（アバターの内側にリングを描く） ===== */
+.frm{position:absolute;inset:0;border-radius:50%;pointer-events:none;--rw:3px;z-index:1}
+.avatar.sm .frm{--rw:2px}
+.profile-top .frm{--rw:5px}
+.avatar.big{width:72px;height:72px;font-size:30px;margin:0 auto 8px}
+.avatar.big .frm{--rw:5px}
+.f-white{box-shadow:inset 0 0 0 var(--rw) #fff}
+.f-mint{box-shadow:inset 0 0 0 var(--rw) #5eead4}
+.f-sky{box-shadow:inset 0 0 0 var(--rw) #60a5fa}
+.f-rose{box-shadow:inset 0 0 0 var(--rw) #fff,inset 0 0 0 calc(var(--rw)*2) #f472b6}
+.f-gold,.f-flame,.f-aurora,.f-rainbow,.f-legend{
+  -webkit-mask:radial-gradient(farthest-side,transparent calc(100% - var(--rw)),#000 calc(100% - var(--rw) + .5px));
+  mask:radial-gradient(farthest-side,transparent calc(100% - var(--rw)),#000 calc(100% - var(--rw) + .5px))}
+.f-gold{background:conic-gradient(#fff3b0,#e0a800,#fff3b0,#b8860b,#fff3b0)}
+.f-neon{box-shadow:inset 0 0 0 var(--rw) #22d3ee,inset 0 0 10px 3px #22d3ee;animation:frmPulse 1.6s ease-in-out infinite}
+.f-flame{background:conic-gradient(#ff3d00,#ffb300,#ff3d00,#ffd54f,#ff3d00);animation:frmSpin 2.4s linear infinite,frmFlick .5s ease-in-out infinite alternate}
+.f-aurora{background:conic-gradient(#34d399,#60a5fa,#a78bfa,#f472b6,#34d399);animation:frmSpin 6s linear infinite}
+.f-rainbow{--rw:4px;background:conic-gradient(#ff0000,#ffd000,#00e676,#00b0ff,#d500f9,#ff0000);animation:frmSpin 2.5s linear infinite}
+.avatar.sm .f-rainbow,.avatar.sm .f-legend{--rw:3px}
+.profile-top .f-rainbow,.profile-top .f-legend,.avatar.big .f-rainbow,.avatar.big .f-legend{--rw:7px}
+.f-legend{--rw:4px;background:conic-gradient(#fff,#ffd700,#ff8c00,#ffd700,#fff,#ffd700,#ff8c00,#ffd700,#fff);animation:frmSpin 3s linear infinite}
+.f-legend::after{content:'✦';position:absolute;top:2%;right:6%;font-size:12px;color:#fff;text-shadow:0 0 6px #ffd700;animation:frmTwinkle 1.2s ease-in-out infinite}
+.avatar.sm .f-legend::after{display:none}
+@keyframes frmSpin{to{transform:rotate(360deg)}}
+@keyframes frmPulse{50%{opacity:.55}}
+@keyframes frmFlick{to{filter:brightness(1.35) saturate(1.2)}}
+@keyframes frmTwinkle{50%{opacity:.2;transform:scale(.6)}}
+@media(prefers-reduced-motion:reduce){.frm,.frm::after{animation:none!important}}
+/* ===== クエスト・ショップ ===== */
+.fil-bal{display:flex;align-items:baseline;gap:8px;padding:18px 20px 12px}
+.fil-bal b{font-size:34px;line-height:1}
+.fil-bal small{color:var(--sub);font-weight:700}
+.fil-coin{display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:50%;background:linear-gradient(135deg,#ffe082,#f5a623);color:#7a4a00;font-size:11px;font-weight:800;align-self:center}
+.q-sec{padding:16px 20px 8px;font-weight:800;border-top:8px solid var(--bg)}
+.q-sec small{color:var(--sub);font-weight:600;margin-left:6px;font-size:12px}
+.quest{display:flex;align-items:center;gap:12px;padding:12px 20px;border-bottom:1px solid var(--line)}
+.quest.ready{background:rgba(139,124,246,.10)}
+.quest.claimed{opacity:.55}
+.q-main{flex:1;min-width:0}
+.q-title{font-weight:700;font-size:15px}
+.q-star{color:#f5a623;font-size:11px;margin-left:8px;letter-spacing:1px}
+.q-desc{color:var(--sub);font-size:12px;margin:2px 0 8px}
+.q-bar{height:6px;border-radius:3px;background:var(--line);overflow:hidden}
+.q-bar i{display:block;height:100%;background:var(--main);border-radius:3px}
+.q-side{display:flex;flex-direction:column;align-items:flex-end;gap:6px;flex-shrink:0;min-width:88px}
+.q-reward{font-weight:800;color:#f5a623;font-size:18px}
+.q-reward small{font-size:11px;margin-left:2px}
+.q-prog{color:var(--sub);font-size:12px;font-weight:700}
+.q-done{color:#3ddc84;font-size:12px;font-weight:700}
+.shopgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;padding:8px 14px 24px}
+.shopitem{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px 10px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:4px}
+.shopitem.on{border-color:var(--main);box-shadow:0 0 0 1px var(--main)}
+.s-name{font-weight:800}
+.s-desc{color:var(--sub);font-size:11px;min-height:28px;line-height:1.3}
+.s-price{color:#f5a623;font-weight:800;font-size:13px}
+.shopitem .btn{white-space:nowrap;font-size:13px;padding:8px 12px}
+@media(max-width:820px){.nav-item{white-space:nowrap;padding:6px 2px!important}}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.112.3/dist/umd/supabase.js"></script>
 </head>
@@ -227,6 +285,7 @@ aside{flex:1;padding:20px;min-width:0}
     <button class="nav-item" data-view="home">ホーム</button>
     <button class="nav-item" data-view="notif">通知<span class="badge hidden" id="nBadge">0</span></button>
     <button class="nav-item" data-view="dm">DM<span class="badge hidden" id="dBadge">0</span></button>
+    <button class="nav-item" data-view="quest">クエスト</button>
     <button class="nav-item" data-view="me">プロフィール</button>
     <button class="btn nav-post" id="openCompose">ポストする</button>
   </nav>
@@ -264,7 +323,7 @@ const NAME_RE = { test: n => { const c = [...String(n)].length; return c >= 1 &&
 const AVRE = /^data:image\/jpeg;base64,[A-Za-z0-9+\/=]+$/;
 const hasAv = u => !!(u.avatar && AVRE.test(u.avatar));
 const avBG = u => hasAv(u) ? `background:url('${u.avatar}') center/cover` : `background:${colorOf(u.name||'?')}`;
-const avTxt = u => (hasAv(u) ? '' : esc([...(u.name||'?')][0].toUpperCase())) + `<i class="dot" data-uid="${esc(u.id || '')}"></i>`;
+const avTxt = u => (hasAv(u) ? '' : esc([...(u.name||'?')][0].toUpperCase())) + (u.frame ? `<i class="frm f-${esc(u.frame)}"></i>` : '') + `<i class="dot" data-uid="${esc(u.id || '')}"></i>`;
 
 /* エラー文を日本語にする */
 function errMsg(e){
@@ -310,7 +369,7 @@ async function ensureProfiles(ids){
   const now = Date.now();
   const need = [...new Set(ids)].filter(id => id && (!PROF[id] || now - PROF[id].t > 120000));
   if(!need.length) return;
-  const rows = await q(sb.from('profiles').select('id,name,bio,avatar').in('id', need));
+  const rows = await q(sb.from('profiles').select('id,name,bio,avatar,frame').in('id', need));
   rows.forEach(p => PROF[p.id] = Object.assign({}, p, { t: now }));
 }
 const normPost = p => ({
@@ -478,7 +537,7 @@ async function loadMe(){
   const { data } = await sb.auth.getSession();
   const user = data.session && data.session.user;
   if(!user) throw new Error('ログインできませんでした');
-  const p = await q(sb.from('profiles').select('id,name,bio,avatar,pinned_post_id').eq('id', user.id).maybeSingle());
+  const p = await q(sb.from('profiles').select('id,name,bio,avatar,pinned_post_id,frame').eq('id', user.id).maybeSingle());
   if(!p) throw new Error('プロフィールが見つかりません');
   me = Object.assign({}, p, { email: user.email });
   PROF[me.id] = Object.assign({}, p, { t: Date.now() });
@@ -490,7 +549,7 @@ async function doLogout(silent){
   stopPresence();
   impSeen.clear(); impQueue.clear(); Object.keys(impTimers).forEach(k => { clearTimeout(impTimers[k]); delete impTimers[k]; });
   try{ if(typingCh){ sb.removeChannel(typingCh); } }catch(e){} typingCh = null; typingKey = ''; dmReply = null;
-  me = null; isAdmin = false; myBlocks = new Set(); feed = []; profile = null; notifs = []; convs = []; chat = null; unread = 0; unreadDM = 0; editing = false;
+  me = null; isAdmin = false; fil = null; myBlocks = new Set(); feed = []; profile = null; notifs = []; convs = []; chat = null; unread = 0; unreadDM = 0; editing = false;
   Object.keys(cimg).forEach(dropImg);
   if(!silent && sb){ try{ await sb.auth.signOut({ scope: 'local' }); }catch(e){} }
   $('#app').classList.add('hidden'); $('#fab').classList.add('hidden'); $('#modalHost').innerHTML = '';
@@ -521,7 +580,7 @@ $('#fab').onclick = openComposeModal;
 /* 右下の＋は、ホームのときだけ */
 function syncFab(){ $('#fab').classList.toggle('hidden', !me || view !== 'home'); }
 
-const TITLES = { home:'ホーム', notif:'通知', dm:'DM', me:'プロフィール' };
+const TITLES = { home:'ホーム', notif:'通知', dm:'DM', quest:'クエスト', me:'プロフィール' };
 const headHTML = t => `<div class="head">${t}</div>`;
 const homeTop = () => headHTML('ホーム') + `<div id="onlineBox"></div>` +
   `<div class="subtabs"><button class="${homeTab==='all'?'on':''}" onclick="setTab('all')">すべて</button><button class="${homeTab==='following'?'on':''}" onclick="setTab('following')">フォロー中</button></div>`;
@@ -530,7 +589,7 @@ function setTab(t){ if(homeTab === t) return; homeTab = t; feed = []; feedCtx = 
 /* 画面を切り替える：読み込み中表示 → データ取得 → 描画 */
 function go(){
   syncFab();
-  const had = (view==='home' && feed.length) || (view==='me' && profile && profile.user.id===(profileId||me.id)) || (view==='notif' && notifs.length) || (view==='dm' && (dmWith ? chat : convs.length));
+  const had = (view==='home' && feed.length) || (view==='me' && profile && profile.user.id===(profileId||me.id)) || (view==='notif' && notifs.length) || (view==='dm' && (dmWith ? chat : convs.length)) || (view==='quest' && fil);
   if(!had) $('#main').innerHTML = (view==='home' ? homeTop() : headHTML(TITLES[view])) + '<div class="empty">読み込み中…</div>';
   chatShown = null;
   refresh(false);
@@ -596,6 +655,15 @@ async function refresh(silent){
       if(view !== v || !me) return;
       notifs = rows;
     }
+    else if(v === 'quest'){
+      const r = await sb.rpc('fil_overview');
+      if(r.error) throw r.error;
+      if(view !== v || !me) return;
+      const sig = JSON.stringify(r.data);
+      if(silent && fil && fil.sig === sig && $('#questBox')) return;       // 変化がなければ描き直さない
+      fil = Object.assign({ sig }, r.data);
+      if(fil.equipped !== (me.frame || null)){ me.frame = fil.equipped || null; if(PROF[me.id]) PROF[me.id].frame = me.frame; }
+    }
     else if(v === 'dm'){
       if(dw){
         const rows = await q(sb.from('dms').select('id,from_user,to_user,text,image_path,created_at,read_at,reply_to')
@@ -659,6 +727,7 @@ function render(){
   }
   else if(view === 'notif') m.innerHTML = headHTML('通知') + notifHTML();
   else if(view === 'dm') dmWith ? renderChat(m) : renderConvs(m);
+  else if(view === 'quest') renderQuest(m);
   else if(view === 'me') renderProfile(m);
   if(pendingScroll && view === 'home'){
     const e = $('#p-' + pendingScroll);
@@ -1240,6 +1309,74 @@ function paintOnline(){
     : `<div class="onl-head">いまオンラインの人はいません</div>`;
 }
 document.addEventListener('visibilitychange', trackOnline);
+
+
+/* ========== クエスト・fil・アイコンフレーム ========== */
+let fil = null, questTab = 'quest';
+const stars = r => '★'.repeat(r >= 150 ? 5 : r >= 40 ? 4 : r >= 12 ? 3 : r >= 5 ? 2 : 1);
+function setQuestTab(t){ questTab = t; render(); window.scrollTo(0, 0); }
+function questCard(q){
+  const done = q.progress >= q.target, pct = Math.round(q.progress / q.target * 100);
+  const btn = q.claimed ? '<span class="q-done">✓ 受け取り済み</span>'
+            : done ? `<button class="btn inline q-claim" onclick="claimQuest('${q.id}')">受け取る</button>`
+            : `<span class="q-prog">${q.progress} / ${q.target}</span>`;
+  return `<div class="quest${q.claimed ? ' claimed' : ''}${done && !q.claimed ? ' ready' : ''}">
+    <div class="q-main"><div class="q-title">${esc(q.title)}<span class="q-star">${stars(q.reward)}</span></div>
+      <div class="q-desc">${esc(q.descr)}</div>
+      <div class="q-bar"><i style="width:${pct}%"></i></div></div>
+    <div class="q-side"><div class="q-reward">+${q.reward}<small> fil</small></div>${btn}</div></div>`;
+}
+function frameCard(f){
+  const mineOn = fil.equipped === f.id, can = fil.balance >= f.price;
+  const prev = { id: me.id, name: me.name, avatar: me.avatar, frame: f.id };
+  const act = f.owned ? (mineOn ? `<button class="btn inline ghost" onclick="equipFrame(null)">外す</button>` : `<button class="btn inline" onclick="equipFrame('${f.id}')">つける</button>`)
+                      : `<button class="btn inline${can ? '' : ' ghost'}" onclick="buyFrame('${f.id}')">${f.price} fil で買う</button>`;
+  return `<div class="shopitem${mineOn ? ' on' : ''}"><div class="avatar big" style="${avBG(prev)}">${avTxt(prev)}</div>
+    <div class="s-name">${esc(f.name)}</div><div class="s-desc">${esc(f.descr)}</div>
+    <div class="s-price">${f.owned ? (mineOn ? '装備中' : '持っています') : f.price + ' fil'}</div>${act}</div>`;
+}
+function renderQuest(m){
+  if(!fil){ m.innerHTML = headHTML('クエスト') + '<div class="empty">読み込み中…</div>'; return; }
+  const daily = fil.quests.filter(q => q.kind === 'daily'), once = fil.quests.filter(q => q.kind === 'once');
+  const ready = fil.quests.filter(q => q.progress >= q.target && !q.claimed).length;
+  const tabs = `<div class="subtabs"><button class="${questTab==='quest'?'on':''}" onclick="setQuestTab('quest')">クエスト${ready ? `<span class="badge" style="margin-left:6px">${ready}</span>` : ''}</button><button class="${questTab==='shop'?'on':''}" onclick="setQuestTab('shop')">ショップ</button></div>`;
+  const bal = `<div class="fil-bal"><span class="fil-coin">fil</span><b>${fil.balance}</b><small>fil</small></div>`;
+  let body;
+  if(questTab === 'shop'){
+    body = `<div class="q-sec">アイコンフレーム <small>高いほど豪華！</small></div><div class="shopgrid">${fil.frames.map(frameCard).join('')}</div>`;
+  } else {
+    body = `<div class="q-sec">デイリー <small>毎日0時にリセット</small></div>${daily.map(questCard).join('')}
+            <div class="q-sec">チャレンジ <small>1回だけ・ごほうび大きめ</small></div>${once.map(questCard).join('')}`;
+  }
+  m.innerHTML = headHTML('クエスト') + bal + tabs + `<div id="questBox">${body}</div>`;
+}
+async function claimQuest(id){
+  try{
+    const r = await sb.rpc('claim_quest', { qid: id });
+    if(r.error) throw r.error;
+    toast(`+${r.data} fil ゲット！`);
+    fil = null; await refresh(true); if(view === 'quest') render();
+  }catch(e){ toast(fail(e)); fil = null; refresh(true); }
+}
+async function buyFrame(id){
+  const f = fil && fil.frames.find(x => x.id === id); if(!f) return;
+  if(fil.balance < f.price){ toast(`filが足りません（あと ${f.price - fil.balance} fil）`); return; }
+  if(!confirm(`「${f.name}」を ${f.price} fil で買いますか？`)) return;
+  try{
+    const r = await sb.rpc('buy_frame', { fid: id });
+    if(r.error) throw r.error;
+    await equipFrame(id, true);
+    toast(`「${f.name}」を手に入れた！つけました`);
+  }catch(e){ toast(fail(e)); fil = null; refresh(true); }
+}
+async function equipFrame(id, quiet){
+  try{
+    await q(sb.from('profiles').update({ frame: id }).eq('id', me.id));
+    me.frame = id; if(PROF[me.id]) PROF[me.id].frame = id;
+    fil = null; await refresh(true); if(view === 'quest') render();
+    if(!quiet) toast(id ? 'フレームをつけました' : 'フレームを外しました');
+  }catch(e){ toast(fail(e)); }
+}
 
 /* ========== 自動更新（新しい通知・投稿・DMを数秒ごとに取り込む） ========== */
 async function pollSummary(){
