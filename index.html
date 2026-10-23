@@ -229,6 +229,7 @@ aside{flex:1;padding:20px;min-width:0}
 .fil-bal{display:flex;align-items:baseline;gap:8px;padding:18px 20px 12px}
 .fil-bal b{font-size:34px;line-height:1}
 .fil-bal small{color:var(--sub);font-weight:700}
+.fil-adm{margin-left:8px;font-size:11px;font-weight:700;color:var(--main);border:1px solid var(--main);border-radius:10px;padding:1px 8px;align-self:center}
 .fil-coin{display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:50%;background:linear-gradient(135deg,#ffe082,#f5a623);color:#7a4a00;font-size:11px;font-weight:800;align-self:center}
 .q-sec{padding:16px 20px 8px;font-weight:800;border-top:8px solid var(--bg)}
 .q-sec small{color:var(--sub);font-weight:600;margin-left:6px;font-size:12px}
@@ -1327,7 +1328,7 @@ function questCard(q){
     <div class="q-side"><div class="q-reward">+${q.reward}<small> fil</small></div>${btn}</div></div>`;
 }
 function frameCard(f){
-  const mineOn = fil.equipped === f.id, can = fil.balance >= f.price;
+  const mineOn = fil.equipped === f.id, can = fil.infinite || fil.balance >= f.price;
   const prev = { id: me.id, name: me.name, avatar: me.avatar, frame: f.id };
   const act = f.owned ? (mineOn ? `<button class="btn inline ghost" onclick="equipFrame(null)">外す</button>` : `<button class="btn inline" onclick="equipFrame('${f.id}')">つける</button>`)
                       : `<button class="btn inline${can ? '' : ' ghost'}" onclick="buyFrame('${f.id}')">${f.price} fil で買う</button>`;
@@ -1340,7 +1341,7 @@ function renderQuest(m){
   const daily = fil.quests.filter(q => q.kind === 'daily'), once = fil.quests.filter(q => q.kind === 'once');
   const ready = fil.quests.filter(q => q.progress >= q.target && !q.claimed).length;
   const tabs = `<div class="subtabs"><button class="${questTab==='quest'?'on':''}" onclick="setQuestTab('quest')">クエスト${ready ? `<span class="badge" style="margin-left:6px">${ready}</span>` : ''}</button><button class="${questTab==='shop'?'on':''}" onclick="setQuestTab('shop')">ショップ</button></div>`;
-  const bal = `<div class="fil-bal"><span class="fil-coin">fil</span><b>${fil.balance}</b><small>fil</small></div>`;
+  const bal = `<div class="fil-bal"><span class="fil-coin">fil</span><b>${fil.infinite ? '∞' : fil.balance}</b><small>fil</small>${fil.infinite ? '<span class="fil-adm">管理者</span>' : ''}</div>`;
   let body;
   if(questTab === 'shop'){
     body = `<div class="q-sec">アイコンフレーム <small>高いほど豪華！</small></div><div class="shopgrid">${fil.frames.map(frameCard).join('')}</div>`;
@@ -1360,7 +1361,7 @@ async function claimQuest(id){
 }
 async function buyFrame(id){
   const f = fil && fil.frames.find(x => x.id === id); if(!f) return;
-  if(fil.balance < f.price){ toast(`filが足りません（あと ${f.price - fil.balance} fil）`); return; }
+  if(!fil.infinite && fil.balance < f.price){ toast(`filが足りません（あと ${f.price - fil.balance} fil）`); return; }
   if(!confirm(`「${f.name}」を ${f.price} fil で買いますか？`)) return;
   try{
     const r = await sb.rpc('buy_frame', { fid: id });
