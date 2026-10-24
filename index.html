@@ -24,6 +24,37 @@ html[data-theme]{background:var(--bg)}
 .th-prev i{display:block;border-radius:6px;background:var(--card);border:1px solid var(--line);flex:1}
 .th-prev b{display:block;height:9px;width:45%;border-radius:5px;background:var(--main)}
 .th-prev u{display:block;height:6px;width:70%;border-radius:4px;background:var(--sub);opacity:.6}
+.vf{width:1.05em;height:1.05em;vertical-align:-.17em;margin-left:4px;flex-shrink:0;display:inline-block}
+/* ロッカー */
+.lk-modal{max-width:420px}
+.lk-body{padding:14px 16px 6px;max-height:75vh;overflow-y:auto}
+.locker{container-type:inline-size;position:relative;width:100%;max-width:330px;aspect-ratio:3/4;margin:0 auto 12px;border:7px solid #8e98ab;border-radius:14px;overflow:hidden;box-shadow:inset 0 0 18px rgba(0,0,0,.35),0 4px 14px rgba(0,0,0,.3);user-select:none;-webkit-user-select:none}
+.locker.editing{touch-action:none;outline:2px dashed var(--main2);outline-offset:3px}
+.lk-vent{position:absolute;left:0;right:0;top:0;height:9%;display:flex;gap:4%;justify-content:center;align-items:center;background:rgba(0,0,0,.22);z-index:0;pointer-events:none}
+.lk-vent i{display:block;width:16%;height:22%;border-radius:4px;background:rgba(0,0,0,.45)}
+.lk-item{position:absolute;transform:translate(-50%,-50%) rotate(var(--r,0deg));font-size:calc(var(--s,1) * 17cqw);line-height:1;filter:drop-shadow(0 2px 2px rgba(0,0,0,.35))}
+.locker.editing .lk-item{cursor:grab;touch-action:none}
+.lk-item.sel{outline:2px dashed #fff;outline-offset:3px;border-radius:8px;background:rgba(255,255,255,.12)}
+.lk-empty{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;text-align:center;color:rgba(255,255,255,.75);font-weight:700;font-size:14px;line-height:1.7;padding:20px}
+.lkb-gray{background:linear-gradient(180deg,#5c6578,#454d5e)}
+.lkb-stripe{background:repeating-linear-gradient(90deg,#3b82f6 0 10%,#dbeafe 10% 20%)}
+.lkb-sky{background:linear-gradient(180deg,#5ab3ff,#d4eeff 70%,#eaf7e1)}
+.lkb-pink{background:linear-gradient(180deg,#ff9ec4,#ffd6e7)}
+.lkb-wood{background:repeating-linear-gradient(0deg,#a8743c 0 12px,#9a6733 12px 14px)}
+.lkb-checker{background:conic-gradient(#f4f4f4 25%,#2b2f3a 0 50%,#f4f4f4 0 75%,#2b2f3a 0) 0 0/20% 15%}
+.lkb-space{background:radial-gradient(circle at 20% 25%,#fff 0 1px,transparent 2px),radial-gradient(circle at 70% 60%,#fff 0 1px,transparent 2px),radial-gradient(circle at 40% 85%,#fff 0 1px,transparent 2px),radial-gradient(circle at 85% 15%,#fff 0 1.5px,transparent 2.5px),linear-gradient(180deg,#0a0638,#2a0f5c)}
+.lkb-gold{background:linear-gradient(135deg,#8a6200,#ffd34d 40%,#b8860b 60%,#ffe58a)}
+.lk-ctl{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin:6px 0}
+.lk-tools{display:flex;gap:6px;justify-content:center;margin:2px 0 6px;flex-wrap:wrap}
+.lk-tools button{min-width:44px;padding:8px 10px;border:1px solid var(--line);background:var(--bg);color:var(--text);border-radius:10px;font-size:15px;font-weight:700}
+.lk-hint{text-align:center;font-size:12px;color:var(--sub);margin-bottom:6px}
+.lk-sec{font-size:12px;color:var(--sub);font-weight:700;margin:8px 0 4px}
+.lk-tray{display:flex;flex-wrap:wrap;gap:6px}
+.lk-tray button{width:46px;height:46px;border:1px solid var(--line);background:var(--bg);border-radius:10px;font-size:24px;display:flex;align-items:center;justify-content:center;padding:0}
+.lk-tray button.on{border-color:var(--main);box-shadow:0 0 0 2px var(--main)}
+.lk-swatch{width:100%;aspect-ratio:3/4;border-radius:10px;max-height:110px;margin:0 auto 6px;border:1px solid var(--line)}
+.lk-swatch.sm{width:30px;height:30px;aspect-ratio:auto;max-height:none;margin:0;border-radius:6px}
+.lk-ico{font-size:54px;text-align:center;line-height:1.3;margin-bottom:4px}
 *{box-sizing:border-box}
 body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Hiragino Sans","Noto Sans JP",sans-serif;background:var(--bg);color:var(--text)}
 button{font:inherit;cursor:pointer}
@@ -498,7 +529,7 @@ async function ensureProfiles(ids){
   const now = Date.now();
   const need = [...new Set(ids)].filter(id => id && (!PROF[id] || now - PROF[id].t > 120000));
   if(!need.length) return;
-  const rows = await q(sb.from('profiles').select('id,name,bio,avatar,frame,hat,badge,effect,pfx').in('id', need));
+  const rows = await q(sb.from('profiles').select('id,name,bio,avatar,verified,frame,hat,badge,effect,pfx').in('id', need));
   rows.forEach(p => PROF[p.id] = Object.assign({}, p, { t: now }));
 }
 const normPost = p => ({
@@ -667,11 +698,14 @@ function applyTheme(t){
   if(t && t !== 'th_dark') document.documentElement.setAttribute('data-theme', t); else document.documentElement.removeAttribute('data-theme');
   try{ if(t && t !== 'th_dark') localStorage.setItem('filx_theme', t); else localStorage.removeItem('filx_theme'); }catch(e){}
 }
+/* 認証バッジ（青いチェック）つきの名前 */
+const VF = '<svg class="vf" viewBox="0 0 24 24" aria-label="認証済み"><title>認証済み</title><circle cx="12" cy="12" r="11" fill="#1d9bf0"/><path d="M7 12.5l3.2 3.2L17 9" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+const nm = u => esc(u.name) + (u.verified ? VF : '');
 async function loadMe(){
   const { data } = await sb.auth.getSession();
   const user = data.session && data.session.user;
   if(!user) throw new Error('ログインできませんでした');
-  const p = await q(sb.from('profiles').select('id,name,bio,avatar,pinned_post_id,frame,hat,badge,effect,pfx,theme').eq('id', user.id).maybeSingle());
+  const p = await q(sb.from('profiles').select('id,name,bio,avatar,verified,pinned_post_id,frame,hat,badge,effect,pfx,theme').eq('id', user.id).maybeSingle());
   if(!p) throw new Error('プロフィールが見つかりません');
   me = Object.assign({}, p, { email: user.email });
   PROF[me.id] = Object.assign({}, p, { t: Date.now() });
@@ -976,7 +1010,7 @@ function postHTML(p){
       <div class="avatar link" style="${avBG(a)}" onclick="openProfile('${a.id}')">${avTxt(a)}</div>
       <div class="post-body">
         ${pinMark(p)}
-        <div><span class="who link" onclick="openProfile('${a.id}')">${esc(a.name)}</span><span class="meta">${ago(p.ts)}</span></div>
+        <div><span class="who link" onclick="openProfile('${a.id}')">${nm(a)}</span><span class="meta">${ago(p.ts)}</span></div>
         ${p.cast ? castLabel(p) : (p.text ? `<div class="text">${esc(p.text)}</div>` : '')}
         ${galleryHTML(p)}
         <div class="actions">
@@ -997,7 +1031,7 @@ function commentHTML(p, c, parentName){
   const del = c.uid === me.id ? `<button class="act del" onclick="delComment('${p.id}','${c.id}')">削除</button>`
             : (isAdmin ? `<button class="act del" onclick="delComment('${p.id}','${c.id}')">削除（管理者）</button>` : '');
   const to = parentName ? `<div class="replyto">↪ <b>@${esc(parentName)}</b> への返信</div>` : '';
-  return `<div class="comment${parentName ? ' reply' : ''}" id="c-${c.id}"><span class="avatar sm link" style="${avBG(a)}" onclick="openProfile('${a.id}')">${avTxt(a)}</span><span class="who link" onclick="openProfile('${a.id}')">${esc(a.name)}</span><span class="meta">${ago(c.ts)}</span>${to}<div class="text" style="margin:2px 0 0">${esc(c.text)}</div><div class="actions c-act"><button class="act ${liked?'liked':''}" onclick="toggleCommentLike('${p.id}','${c.id}')">${liked?'❤️':'🤍'} ${c.likes.length}</button><button class="act" onclick="startReply('${p.id}','${c.id}')">返信</button>${del}</div></div>`;
+  return `<div class="comment${parentName ? ' reply' : ''}" id="c-${c.id}"><span class="avatar sm link" style="${avBG(a)}" onclick="openProfile('${a.id}')">${avTxt(a)}</span><span class="who link" onclick="openProfile('${a.id}')">${nm(a)}</span><span class="meta">${ago(c.ts)}</span>${to}<div class="text" style="margin:2px 0 0">${esc(c.text)}</div><div class="actions c-act"><button class="act ${liked?'liked':''}" onclick="toggleCommentLike('${p.id}','${c.id}')">${liked?'❤️':'🤍'} ${c.likes.length}</button><button class="act" onclick="startReply('${p.id}','${c.id}')">返信</button>${del}</div></div>`;
 }
 function commentsHTML(p){
   const byId = {}; p.comments.forEach(c => byId[c.id] = c);
@@ -1058,7 +1092,7 @@ async function showViewers(pid){
   try{
     const rows = await q(sb.rpc('post_viewers', { pid }));
     await ensureProfiles(rows.map(r => r.user_id));
-    const items = rows.map(r => { const u = U(r.user_id); return `<div class="conv" onclick="openProfile('${u.id}')"><div class="avatar" style="${avBG(u)}">${avTxt(u)}</div><div style="min-width:0"><b>${esc(u.name)}</b><br><span class="meta" style="margin:0">${ago(Date.parse(r.last_at))}に見ました</span></div></div>`; }).join('');
+    const items = rows.map(r => { const u = U(r.user_id); return `<div class="conv" onclick="openProfile('${u.id}')"><div class="avatar" style="${avBG(u)}">${avTxt(u)}</div><div style="min-width:0"><b>${nm(u)}</b><br><span class="meta" style="margin:0">${ago(Date.parse(r.last_at))}に見ました</span></div></div>`; }).join('');
     $('#modalHost').innerHTML = `<div class="modal-bg" id="mbg"><div class="modal"><div class="head" style="position:static">見た人（${rows.length}人）</div><div class="ulist">${items || '<div class="empty">まだ誰も見ていません</div>'}</div><div class="meta" style="padding:8px 20px 14px;margin:0">同じ人が何度見ても、1人として表示されます</div></div></div>`;
     $('#mbg').onclick = e => { if(e.target.id === 'mbg') closeModal(); };
   }catch(e){ toast(fail(e)); }
@@ -1120,21 +1154,21 @@ function notifHTML(){
     const cls = `notif ${n.read?'':'new'}`;
     if(n.type === 'follow'){
       return `<div class="${cls}" style="cursor:pointer" onclick="openProfile('${a.id}')">${av}
-        <div style="min-width:0"><b>${esc(a.name)}</b>があなたをフォローしました<br><span class="meta" style="margin:0">${ago(Date.parse(n.created_at))}</span></div></div>`;
+        <div style="min-width:0"><b>${nm(a)}</b>があなたをフォローしました<br><span class="meta" style="margin:0">${ago(Date.parse(n.created_at))}</span></div></div>`;
     }
     if(n.type === 'dm'){
       return `<div class="${cls}" style="cursor:pointer" onclick="openChat('${a.id}')">${av}
-        <div style="min-width:0"><b>${esc(a.name)}</b>からメッセージが届きました<br><span style="word-break:break-word">${esc(n.text || '')}</span><br><span class="meta" style="margin:0">${ago(Date.parse(n.created_at))}</span></div></div>`;
+        <div style="min-width:0"><b>${nm(a)}</b>からメッセージが届きました<br><span style="word-break:break-word">${esc(n.text || '')}</span><br><span class="meta" style="margin:0">${ago(Date.parse(n.created_at))}</span></div></div>`;
     }
     if(n.type === 'reply'){
       return `<div class="${cls}" style="cursor:pointer" onclick="goPost('${n.post_id}')">${av}
-        <div style="min-width:0"><b>${esc(a.name)}</b>があなたのコメントに返信しました<br><span style="word-break:break-word">${esc(n.text || '')}</span><br><span class="meta" style="margin:0">${ago(Date.parse(n.created_at))}</span></div></div>`;
+        <div style="min-width:0"><b>${nm(a)}</b>があなたのコメントに返信しました<br><span style="word-break:break-word">${esc(n.text || '')}</span><br><span class="meta" style="margin:0">${ago(Date.parse(n.created_at))}</span></div></div>`;
     }
     const txt = n.post ? (n.post.text || ((n.post.image_paths || []).length ? '（画像）' : '')) : null;
     const prev = txt === null ? '削除された投稿' : esc(txt.slice(0,30)) + (txt.length > 30 ? '…' : '');
     const body = n.type === 'like' ? 'があなたの投稿にいいねしました' : 'があなたの投稿にコメントしました';
     return `<div class="${cls}" style="cursor:pointer" onclick="goPost('${n.post_id}')">${av}
-      <div style="min-width:0"><b>${esc(a.name)}</b>${body}${n.type==='comment' && n.text ? `<br><span style="word-break:break-word">${esc(n.text)}</span>` : ''}<br><span class="meta" style="margin:0">「${prev}」 ・ ${ago(Date.parse(n.created_at))}</span></div></div>`;
+      <div style="min-width:0"><b>${nm(a)}</b>${body}${n.type==='comment' && n.text ? `<br><span style="word-break:break-word">${esc(n.text)}</span>` : ''}<br><span class="meta" style="margin:0">「${prev}」 ・ ${ago(Date.parse(n.created_at))}</span></div></div>`;
   }).join('');
 }
 function goPost(pid){
@@ -1146,7 +1180,7 @@ function goPost(pid){
 /* ========== DM ========== */
 function renderConvs(m){
   const list = convs.map(c => `<div class="conv" onclick="openChat('${c.user.id}')"><div class="avatar" style="${avBG(c.user)}">${avTxt(c.user)}</div>
-      <div style="min-width:0"><b>${esc(c.user.name)}</b><br><span class="meta" style="margin:0">${esc(c.text)} ・ ${ago(c.ts)}</span></div></div>`).join('')
+      <div style="min-width:0"><b>${nm(c.user)}</b><br><span class="meta" style="margin:0">${esc(c.text)} ・ ${ago(c.ts)}</span></div></div>`).join('')
     || `<div class="empty">まだDMはありません<br>ユーザー名を入力して送ってみよう</div>`;
   m.innerHTML = headHTML('DM') + `<div class="dm-new"><input id="dmName" placeholder="相手のユーザー名" onkeydown="if(event.key==='Enter')startDM()"><button onclick="startDM()">開く</button></div><div id="onlineBox"></div>` + list;
   paintOnline();
@@ -1232,7 +1266,7 @@ function sendTyping(){
 
 function renderChat(m){
   const u = chat.user;
-  m.innerHTML = `<div class="head"><button class="back" onclick="closeChat()">←</button><span class="who link" onclick="openProfile('${u.id}')">${esc(u.name)}</span></div>
+  m.innerHTML = `<div class="head"><button class="back" onclick="closeChat()">←</button><span class="who link" onclick="openProfile('${u.id}')">${nm(u)}</span></div>
     <div class="chat" id="chatBody">${bubbles()}</div>
     <div class="typing hidden" id="typing"></div>
     <div class="chat-bar">
@@ -1327,7 +1361,7 @@ async function showBlocks(){
     const rows = await q(sb.from('blocks').select('blocked').order('created_at', { ascending:false }).limit(200));
     myBlocks = new Set(rows.map(r => r.blocked));
     await ensureProfiles(rows.map(r => r.blocked));
-    const items = rows.map(r => { const u = U(r.blocked); return `<div class="conv"><div class="avatar" style="${avBG(u)}" onclick="closeModal();openProfile('${u.id}')">${avTxt(u)}</div><div style="min-width:0;flex:1"><b>${esc(u.name)}</b></div><button class="btn inline ghost" style="margin:0;padding:6px 14px" onclick="toggleBlock('${u.id}')">解除</button></div>`; }).join('');
+    const items = rows.map(r => { const u = U(r.blocked); return `<div class="conv"><div class="avatar" style="${avBG(u)}" onclick="closeModal();openProfile('${u.id}')">${avTxt(u)}</div><div style="min-width:0;flex:1"><b>${nm(u)}</b></div><button class="btn inline ghost" style="margin:0;padding:6px 14px" onclick="toggleBlock('${u.id}')">解除</button></div>`; }).join('');
     $('#modalHost').innerHTML = `<div class="modal-bg" id="mbg"><div class="modal"><div class="head" style="position:static">ブロックした人</div><div class="ulist">${items || '<div class="empty">ブロックしている人はいません</div>'}</div></div></div>`;
     $('#mbg').onclick = e => { if(e.target.id === 'mbg') closeModal(); };
   }catch(e){ toast(fail(e)); }
@@ -1348,7 +1382,7 @@ async function showFollows(id, kind){
     const key = kind === 'followers' ? 'following_id' : 'follower_id';
     const rows = await q(sb.from('follows').select(col).eq(key, id).order('created_at', { ascending:false }).limit(200));
     await ensureProfiles(rows.map(r => r[col]));
-    const items = rows.map(r => { const u = U(r[col]); return `<div class="conv" onclick="openProfile('${u.id}')"><div class="avatar" style="${avBG(u)}">${avTxt(u)}</div><div style="min-width:0"><b>${esc(u.name)}</b>${u.bio ? `<br><span class="meta" style="margin:0">${esc(u.bio.slice(0,40))}</span>` : ''}</div></div>`; }).join('');
+    const items = rows.map(r => { const u = U(r[col]); return `<div class="conv" onclick="openProfile('${u.id}')"><div class="avatar" style="${avBG(u)}">${avTxt(u)}</div><div style="min-width:0"><b>${nm(u)}</b>${u.bio ? `<br><span class="meta" style="margin:0">${esc(u.bio.slice(0,40))}</span>` : ''}</div></div>`; }).join('');
     $('#modalHost').innerHTML = `<div class="modal-bg" id="mbg"><div class="modal"><div class="head" style="position:static">${kind === 'followers' ? 'フォロワー' : 'フォロー中'}</div><div class="ulist">${items || '<div class="empty">まだいません</div>'}</div></div></div>`;
     $('#mbg').onclick = e => { if(e.target.id === 'mbg') closeModal(); };
   }catch(e){ toast(fail(e)); }
@@ -1391,7 +1425,7 @@ function renderProfile(m){
   } else {
     top = `<div class="profile-top">
       <div class="avatar" style="${avBG(u)}">${avTxt(u)}</div>
-      <h2>${esc(u.name)}</h2>
+      <h2>${nm(u)}</h2>
       <div class="onltag" data-uid="${esc(u.id)}">● オンライン</div>
       ${own ? `<p>${esc(me.email || '')}</p>` : ''}
       <p class="bio">${u.bio ? esc(u.bio) : (own ? '<span style="color:var(--sub)">ステータスメッセージはまだありません</span>' : '')}</p>
@@ -1402,10 +1436,11 @@ function renderProfile(m){
         <span><b>${profile.likes}</b> いいね</span>
       </div>
       ${u.pfx ? `<div style="margin:2px 0 10px"><button class="btn inline ghost" style="margin:0;padding:4px 14px" onclick="playPfx('${esc(u.pfx)}')">✨ 演出をもう一度</button></div>` : ''}
-      ${own ? `<div class="btn-row" style="justify-content:center"><button class="btn inline" onclick="startEdit()">プロフィールを編集</button></div><label class="tog"><input type="checkbox" ${showOnline ? 'checked' : ''} onchange="setShowOnline(this.checked)"> オンライン中であることを他の人に表示する</label><div><button class="btn inline ghost" onclick="showBlocks()">ブロックした人（${myBlocks.size}）</button></div>${isAdmin ? '<div><button class="btn inline ghost-danger" onclick="openBan()">アカウント管理（まとめてBAN）</button></div>' : ''}<button class="logout" onclick="logout()">ログアウト</button>`
+      ${own ? `<div class="btn-row" style="justify-content:center"><button class="btn inline" onclick="startEdit()">プロフィールを編集</button><button class="btn inline ghost" onclick="openLocker('${u.id}')">🗄️ ロッカー</button></div><label class="tog"><input type="checkbox" ${showOnline ? 'checked' : ''} onchange="setShowOnline(this.checked)"> オンライン中であることを他の人に表示する</label><div><button class="btn inline ghost" onclick="showBlocks()">ブロックした人（${myBlocks.size}）</button></div>${isAdmin ? '<div><button class="btn inline ghost-danger" onclick="openBan()">アカウント管理（まとめてBAN）</button></div>' : ''}<button class="logout" onclick="logout()">ログアウト</button>`
             : `<div class="btn-row" style="justify-content:center;flex-wrap:wrap">
                  ${profile.blocked ? '' : `<button class="btn inline ${profile.followed?'following':''}" onclick="toggleFollow('${u.id}')">${profile.followed ? 'フォロー中（タップで解除）' : 'フォローする'}</button>
                  <button class="btn inline" onclick="openChat('${u.id}')">DMを送信</button>`}
+                 <button class="btn inline ghost" onclick="openLocker('${u.id}')">🗄️ ロッカー</button>
                </div>
                ${profile.blocked ? '<p class="bio">この人をブロックしています</p>' : ''}
                ${isAdmin ? '' : `<div><button class="btn inline ghost-danger" onclick="toggleBlock('${u.id}')">${profile.blocked ? 'ブロックを解除する' : 'ブロックする'}</button></div>`}
@@ -1413,7 +1448,7 @@ function renderProfile(m){
               ${isAdmin ? `<div><button class="btn inline ghost-danger" onclick="adminDeleteUser('${u.id}')">このアカウントを削除（管理者）</button></div>` : ''}`}
     </div>`;
   }
-  m.innerHTML = headHTML(own ? 'プロフィール' : esc(u.name)) + top +
+  m.innerHTML = headHTML(own ? 'プロフィール' : nm(u)) + top +
     `<div class="head" style="position:static;font-size:15px">${own ? '自分の投稿' : '投稿'}</div>` + feedHTML(profile.pinId ? [...(profile.pinned ? [profile.pinned] : profile.posts.filter(p => p.id === profile.pinId)), ...profile.posts.filter(p => p.id !== profile.pinId)] : profile.posts, profMore);
 }
 
@@ -1458,7 +1493,7 @@ function paintOnline(){
   const box = $('#onlineBox'); if(!box) return;
   const others = [...onlineIds].filter(id => id !== me.id && PROF[id] && !myBlocks.has(id));
   box.innerHTML = others.length
-    ? `<div class="onl-head">オンライン中（${others.length}人）</div><div class="onl-list">${others.map(id => { const u = U(id); return `<button class="onl-chip" onclick="openChat('${esc(id)}')"><span class="avatar sm" style="${avBG(u)}">${avTxt(u)}</span>${esc(u.name)}</button>`; }).join('')}</div>`
+    ? `<div class="onl-head">オンライン中（${others.length}人）</div><div class="onl-list">${others.map(id => { const u = U(id); return `<button class="onl-chip" onclick="openChat('${esc(id)}')"><span class="avatar sm" style="${avBG(u)}">${avTxt(u)}</span>${nm(u)}</button>`; }).join('')}</div>`
     : `<div class="onl-head">いまオンラインの人はいません</div>`;
 }
 document.addEventListener('visibilitychange', trackOnline);
@@ -1497,7 +1532,7 @@ async function banLoad(){
 function banPaint(){
   const box = $('#banBox'); if(!box) return;
   const d = x => new Date(x).toLocaleDateString('ja-JP');
-  box.innerHTML = banList.length ? banList.map(u => `<label class="conv ban-row"><input type="checkbox" ${banSel.has(u.id) ? 'checked' : ''} onchange="banTick('${u.id}', this.checked)"><div style="min-width:0;flex:1"><b>${esc(u.name)}</b><div class="small-sub">投稿 ${u.posts}件 ・ ${d(u.created_at)}登録 ・ ${u.fil} fil</div></div><button class="btn inline ghost ban-fil" onclick="event.preventDefault();event.stopPropagation();adminSetFil('${u.id}', ${u.fil})">fil変更</button></label>`).join('')
+  box.innerHTML = banList.length ? banList.map(u => `<label class="conv ban-row"><input type="checkbox" ${banSel.has(u.id) ? 'checked' : ''} onchange="banTick('${u.id}', this.checked)"><div style="min-width:0;flex:1"><b>${nm(u)}</b><div class="small-sub">投稿 ${u.posts}件 ・ ${d(u.created_at)}登録 ・ ${u.fil} fil</div></div><button class="btn inline ghost ban-fil" onclick="event.preventDefault();event.stopPropagation();adminSetFil('${u.id}', ${u.fil})">fil変更</button></label>`).join('')
                               : '<div class="empty">該当する人がいません</div>';
   banCount();
 }
@@ -1535,15 +1570,122 @@ async function adminSetFil(id, cur){
     if(view === 'me' && profile && profile.user.id === id) loadAdmFil(id);
   }catch(e){ toast(fail(e)); }
 }
+async function adminSetVerified(id, on){
+  if(!isAdmin) return;
+  try{
+    await q(sb.rpc('admin_set_verified', { target: id, on_: on }));
+    if(PROF[id]) PROF[id].verified = on;
+    if(me && me.id === id) me.verified = on;
+    toast(on ? '認証バッジをつけました' : '認証バッジを外しました');
+    if(profile && profile.user && profile.user.id === id) profile.user.verified = on;
+    render(); if(view === 'me' && profile && !profile.own) loadAdmFil(id);
+  }catch(e){ toast(fail(e)); }
+}
 async function loadAdmFil(id){
   const el = $('#admFil'); if(!el || !isAdmin) return;
   try{
     const n = await q(sb.rpc('admin_get_fil', { target: id }));
     const el2 = $('#admFil'); if(!el2 || !profile || profile.user.id !== id) return;
-    el2.innerHTML = `<span class="small-sub">fil：<b>${n}</b></span> <button class="btn inline ghost" style="margin:0;padding:4px 12px" onclick="adminSetFil('${id}', ${n})">filを変更</button>`;
+    const vf = !!(PROF[id] && PROF[id].verified);
+    el2.innerHTML = `<span class="small-sub">fil：<b>${n}</b></span> <button class="btn inline ghost" style="margin:0;padding:4px 12px" onclick="adminSetFil('${id}', ${n})">filを変更</button> <button class="btn inline ghost" style="margin:0;padding:4px 12px" onclick="adminSetVerified('${id}', ${!vf})">${vf ? '認証バッジを外す' : '認証バッジをつける'}</button>`;
   }catch(e){}
 }
 
+
+
+/* ========== ロッカー（プロフィールから見られる。ショップの小物を自由に置ける） ========== */
+const LK_ICON = { lk_star:'⭐', lk_heart:'💖', lk_music:'🎵', lk_book:'📚', lk_pizza:'🍕', lk_cat:'🐱', lk_dog:'🐶', lk_ice:'🍦', lk_ball:'⚽', lk_sushi:'🍣', lk_plant:'🪴', lk_camera:'📷', lk_game:'🎮', lk_phones:'🎧', lk_rainbow:'🌈', lk_guitar:'🎸', lk_rocket:'🚀', lk_trophy:'🏆', lk_crown:'👑', lk_gem:'💎', lk_dragon:'🐉', lk_ufo:'🛸' };
+const LK_BG = { lkbg_gray:'lkb-gray', lkbg_stripe:'lkb-stripe', lkbg_sky:'lkb-sky', lkbg_pink:'lkb-pink', lkbg_wood:'lkb-wood', lkbg_checker:'lkb-checker', lkbg_space:'lkb-space', lkbg_gold:'lkb-gold' };
+const LK_MAX = 24;
+let lk = null;
+async function openLocker(uid){
+  try{
+    const [rows, pr] = await Promise.all([
+      q(sb.from('locker_items').select('item_id,x,y,rot,scale').eq('user_id', uid).order('z')),
+      q(sb.from('profiles').select('lkbg').eq('id', uid).maybeSingle())
+    ]);
+    await ensureProfiles([uid]);
+    lk = { uid, own: uid === me.id, items: rows.map(r => ({ item_id:r.item_id, x:Number(r.x), y:Number(r.y), rot:r.rot, scale:Number(r.scale) })), bg: (pr && pr.lkbg) || 'lkbg_gray', edit:false, sel:-1, owned:null, drag:null };
+    lkPaint();
+  }catch(e){ toast(fail(e)); }
+}
+function lkItemHTML(it, i){
+  return `<div class="lk-item${lk.edit && i === lk.sel ? ' sel' : ''}" data-i="${i}" style="left:${it.x}%;top:${it.y}%;--r:${it.rot}deg;--s:${it.scale}">${LK_ICON[it.item_id] || '❔'}</div>`;
+}
+function lkPaint(){
+  if(!lk) return;
+  const u = U(lk.uid);
+  const box = `<div class="locker ${LK_BG[lk.bg] || 'lkb-gray'}${lk.edit ? ' editing' : ''}" id="lkBox"><div class="lk-vent"><i></i><i></i><i></i><i></i></div>${lk.items.map(lkItemHTML).join('')}${!lk.items.length ? `<div class="lk-empty">${lk.own ? 'まだ何もありません。<br>「編集」から小物を置こう' : 'まだ何も置かれていません'}</div>` : ''}</div>`;
+  let ctl = '';
+  if(lk.own && !lk.edit) ctl = `<div class="lk-ctl"><button class="btn inline" onclick="lkEdit()">ロッカーを編集</button><button class="btn inline ghost" onclick="lkShop()">ショップへ</button></div>`;
+  if(lk.own && lk.edit){
+    const own = (lk.owned || []);
+    const props = own.filter(f => f.kind === 'locker'), walls = own.filter(f => f.kind === 'lkbg');
+    ctl = `<div class="lk-tools"><button onclick="lkRot(-15)" title="左に回す">↺</button><button onclick="lkRot(15)" title="右に回す">↻</button><button onclick="lkScale(1.15)" title="大きく">＋</button><button onclick="lkScale(1/1.15)" title="小さく">－</button><button onclick="lkFront()" title="いちばん手前へ">⬆手前</button><button onclick="lkDel()" title="消す">🗑</button></div>
+      <div class="lk-hint">小物をドラッグして動かせます（${lk.items.length} / ${LK_MAX}）</div>
+      <div class="lk-sec">小物を置く</div><div class="lk-tray">${props.length ? props.map(f => `<button onclick="lkAdd('${f.id}')" title="${esc(f.name)}">${LK_ICON[f.id] || '❔'}</button>`).join('') : '<span class="small-sub">まだ小物を持っていません</span>'}</div>
+      <div class="lk-sec">壁</div><div class="lk-tray">${walls.map(f => `<button class="${lk.bg === f.id ? 'on' : ''}" onclick="lkWall('${f.id}')" title="${esc(f.name)}"><span class="lk-swatch sm ${LK_BG[f.id] || 'lkb-gray'}"></span></button>`).join('')}</div>
+      <div class="lk-ctl"><button class="btn inline" onclick="lkSave()">保存する</button><button class="btn inline ghost" onclick="lkCancel()">やめる</button><button class="btn inline ghost" onclick="lkShop()">ショップへ</button></div>`;
+  }
+  $('#modalHost').innerHTML = `<div class="modal-bg" id="mbg"><div class="modal lk-modal"><div class="head" style="position:static">🗄️ ${nm(u)}のロッカー</div><div class="lk-body">${box}${ctl}</div><div class="ban-foot"><button class="btn inline ghost" onclick="lkClose()">閉じる</button></div></div></div>`;
+  $('#mbg').onclick = e => { if(e.target.id === 'mbg' && !lk.edit) lkClose(); };
+  if(lk.edit) lkBindDrag();
+}
+function lkClose(){ lk = null; closeModal(); }
+async function lkEdit(){
+  try{
+    const r = await q(sb.rpc('fil_overview'));
+    lk.owned = r.items.filter(f => f.owned && (f.kind === 'locker' || f.kind === 'lkbg'));
+    lk.edit = true; lk.sel = -1; lk.bg0 = lk.bg; lk.items0 = JSON.stringify(lk.items);
+    lkPaint();
+  }catch(e){ toast(fail(e)); }
+}
+function lkShop(){ lkClose(); view = 'quest'; questTab = 'shop'; shopKind = 'locker'; dmWith = null; profileId = me.id; editing = false; fil = null; go(); window.scrollTo(0, 0); }
+function lkCancel(){ if(lk.items0 !== JSON.stringify(lk.items) || lk.bg0 !== lk.bg){ if(!confirm('変更は保存されません。やめますか？')) return; } openLocker(lk.uid); }
+function lkAdd(id){
+  if(lk.items.length >= LK_MAX){ toast(`置けるのは${LK_MAX}個までです`); return; }
+  lk.items.push({ item_id:id, x:50, y:50, rot:0, scale:1 }); lk.sel = lk.items.length - 1; lkPaint();
+}
+function lkRot(d){ const it = lk.items[lk.sel]; if(!it) return; it.rot = Math.max(-180, Math.min(180, it.rot + d)); if(it.rot > 180) it.rot = 180; lkStyle(); }
+function lkScale(f){ const it = lk.items[lk.sel]; if(!it) return; it.scale = Math.max(0.4, Math.min(2.5, Math.round(it.scale * f * 100) / 100)); lkStyle(); }
+function lkFront(){ const it = lk.items[lk.sel]; if(!it) return; lk.items.splice(lk.sel, 1); lk.items.push(it); lk.sel = lk.items.length - 1; lkPaint(); }
+function lkDel(){ if(lk.sel < 0) return; lk.items.splice(lk.sel, 1); lk.sel = -1; lkPaint(); }
+function lkWall(id){ lk.bg = id; lkPaint(); }
+function lkStyle(){
+  document.querySelectorAll('#lkBox .lk-item').forEach(el => {
+    const it = lk.items[+el.dataset.i]; if(!it) return;
+    el.style.left = it.x + '%'; el.style.top = it.y + '%'; el.style.setProperty('--r', it.rot + 'deg'); el.style.setProperty('--s', it.scale);
+    el.classList.toggle('sel', +el.dataset.i === lk.sel);
+  });
+}
+function lkBindDrag(){
+  const box = $('#lkBox'); if(!box) return;
+  box.onpointerdown = e => {
+    const el = e.target.closest('.lk-item');
+    if(!el){ lk.sel = -1; lkStyle(); return; }
+    e.preventDefault();
+    lk.sel = +el.dataset.i; lkStyle();
+    const r = box.getBoundingClientRect(), it = lk.items[lk.sel];
+    lk.drag = { dx: (e.clientX - r.left) / r.width * 100 - it.x, dy: (e.clientY - r.top) / r.height * 100 - it.y };
+    try{ box.setPointerCapture(e.pointerId); }catch(x){}
+  };
+  box.onpointermove = e => {
+    if(!lk || !lk.drag) return;
+    const r = box.getBoundingClientRect(), it = lk.items[lk.sel]; if(!it) return;
+    const cl = v => Math.max(0, Math.min(100, Math.round(v * 100) / 100));
+    it.x = cl((e.clientX - r.left) / r.width * 100 - lk.drag.dx); it.y = cl((e.clientY - r.top) / r.height * 100 - lk.drag.dy);
+    lkStyle();
+  };
+  const end = () => { if(lk) lk.drag = null; };
+  box.onpointerup = end; box.onpointercancel = end;
+}
+async function lkSave(){
+  try{
+    await q(sb.rpc('locker_save', { items: lk.items.map(x => ({ item_id:x.item_id, x:x.x, y:x.y, rot:Math.round(x.rot), scale:x.scale })) }));
+    if(lk.bg !== lk.bg0){ await q(sb.from('profiles').update({ lkbg: lk.bg }).eq('id', me.id)); me.lkbg = lk.bg; }
+    toast('ロッカーを保存しました'); openLocker(lk.uid);
+  }catch(e){ toast(fail(e)); }
+}
 
 /* ========== プロフィール演出（プロフィールを開くとアニメが出る） ========== */
 const PFX_ICON = { pfx_confetti:'🎉', pfx_sakura:'🌸', pfx_stars:'🌠', pfx_hearts:'💖', pfx_snow:'❄️', pfx_bubbles:'🫧', pfx_fireworks:'🎆' };
@@ -1675,7 +1817,7 @@ async function castChatLoad(){
     if(sig === chatSig && box.children.length) return;
     chatSig = sig;
     const near = box.scrollTop + box.clientHeight >= box.scrollHeight - 40;
-    box.innerHTML = rows.length ? rows.map(r => `<div class="lcm"><b>${esc(U(r.user_id).name)}</b> ${esc(r.text)}${(r.user_id === me.id || isAdmin) ? ` <span class="lcx" onclick="castChatDel('${r.id}')">✕</span>` : ''}</div>`).join('')
+    box.innerHTML = rows.length ? rows.map(r => `<div class="lcm"><b>${nm(U(r.user_id))}</b> ${esc(r.text)}${(r.user_id === me.id || isAdmin) ? ` <span class="lcx" onclick="castChatDel('${r.id}')">✕</span>` : ''}</div>`).join('')
                                 : '<div class="lcm sub">まだコメントはありません。最初のコメントをどうぞ！</div>';
     if(near || !box.dataset.init){ box.scrollTop = box.scrollHeight; box.dataset.init = '1'; }
   }catch(e){}
@@ -1910,7 +2052,7 @@ function liveCardHTML(p){
     <div class="post-top">
       <div class="avatar link" style="${avBG(a)}" onclick="openProfile('${a.id}')">${avTxt(a)}</div>
       <div class="post-body">
-        <div><span class="who link" onclick="openProfile('${a.id}')">${esc(a.name)}</span><span class="meta">${ago(p.ts)}</span></div>
+        <div><span class="who link" onclick="openProfile('${a.id}')">${nm(a)}</span><span class="meta">${ago(p.ts)}</span></div>
         <div class="cast-h"><span class="rec">●</span> ライブ配信中（${mode}）<span class="cast-timer" id="castTimer">残り ${mmss(Date.parse(st.ends_at) - castOff - Date.now())}</span></div>
         ${body}
         <div class="livechat"><div id="lcList" class="lc-list"><div class="lcm sub">読み込み中…</div></div>
@@ -1948,7 +2090,8 @@ async function adminRedirectAll(){
 
 /* ========== クエスト・fil・アイコンの飾り ========== */
 let fil = null, questTab = 'quest', shopKind = 'frame';
-const KINDS = [['frame','フレーム'], ['hat','あたまの飾り'], ['badge','バッジ'], ['effect','エフェクト'], ['pfx','プロフィール演出'], ['theme','着せ替え']];
+const KINDS = [['frame','フレーム'], ['hat','あたまの飾り'], ['badge','バッジ'], ['effect','エフェクト'], ['pfx','プロフィール演出'], ['theme','着せ替え'], ['locker','ロッカー小物'], ['lkbg','ロッカーの壁']];
+const DEFK = { theme:'th_dark', lkbg:'lkbg_gray' };   // これらは「外す」ではなく標準に戻す種類
 const stars = r => '★'.repeat(r >= 150 ? 5 : r >= 40 ? 4 : r >= 12 ? 3 : r >= 5 ? 2 : 1);
 function syncEquipped(){
   const e = (fil && fil.equipped) || {};
@@ -1972,17 +2115,21 @@ function questCard(q){
     <div class="q-side"><div class="q-reward">+${q.reward}<small> fil</small></div>${btn}</div></div>`;
 }
 function itemCard(f){
-  const isT = f.kind === 'theme';
+  const isT = f.kind in DEFK, isL = f.kind === 'locker';
   const eqv = (fil.equipped || {})[f.kind];
-  const mineOn = isT ? (eqv || 'th_dark') === f.id : eqv === f.id, can = fil.infinite || fil.balance >= f.price;
+  const mineOn = isT ? (eqv || DEFK[f.kind]) === f.id : eqv === f.id, can = fil.infinite || fil.balance >= f.price;
   const prev = { id: me.id, name: me.name, avatar: me.avatar, [f.kind]: f.id };
-  const act = isT ? (mineOn ? '' : f.owned ? `<button class="btn inline" onclick="equipItem('theme', ${f.id === 'th_dark' ? 'null' : `'${f.id}'`})">着せ替える</button>` : `<button class="btn inline${can ? '' : ' ghost'}" onclick="buyItem('${f.id}')">${f.price} fil で買う</button>`)
+  const buy = `<button class="btn inline${can ? '' : ' ghost'}" onclick="buyItem('${f.id}')">${f.price} fil で買う</button>`;
+  const act = isL ? (f.owned ? '' : buy)
+    : isT ? (mineOn ? '' : f.owned ? `<button class="btn inline" onclick="equipItem('${f.kind}', ${f.id === DEFK[f.kind] ? 'null' : `'${f.id}'`})">${f.kind === 'theme' ? '着せ替える' : 'つける'}</button>` : buy)
     : f.owned ? (mineOn ? `<button class="btn inline ghost" onclick="equipItem('${f.kind}', null)">外す</button>` : `<button class="btn inline" onclick="equipItem('${f.kind}', '${f.id}')">つける</button>`)
-    : `<button class="btn inline${can ? '' : ' ghost'}" onclick="buyItem('${f.id}')">${f.price} fil で買う</button>`;
+    : buy;
   const pv = f.kind === 'pfx' ? `<div class="pfx-prev"><button class="btn inline ghost" onclick="playPfx('${f.id}')">▶ 見てみる</button></div>` : '';
-  const pic = isT ? `<div class="th-prev" data-theme="${f.id}"><b></b><u></u><i></i></div>`
+  const pic = f.kind === 'theme' ? `<div class="th-prev" data-theme="${f.id}"><b></b><u></u><i></i></div>`
+    : f.kind === 'lkbg' ? `<div class="lk-swatch ${LK_BG[f.id] || 'lkb-gray'}"></div>`
+    : isL ? `<div class="lk-ico">${LK_ICON[f.id] || '❔'}</div>`
     : f.kind === 'pfx' ? `<div class="pfx-ico">${PFX_ICON[f.id] || '✨'}</div>` : `<div class="avatar big" style="${avBG(prev)}">${avTxt(prev)}</div>`;
-  const price = f.owned ? (mineOn ? '装備中' : (f.price === 0 ? '無料' : '持っています')) : f.price + ' fil';
+  const price = f.owned ? (mineOn ? '装備中' : (f.price === 0 ? '無料' : isL ? '持っています（ロッカーに置こう）' : '持っています')) : f.price + ' fil';
   return `<div class="shopitem${mineOn ? ' on' : ''}${f.kind === 'pfx' ? ' pfxitem' : ''}">${pic}${pv}
     <div class="s-name">${esc(f.name)}</div><div class="s-desc">${esc(f.descr)}</div>
     <div class="s-price">${price}</div>${act}</div>`;
@@ -2029,6 +2176,7 @@ async function equipItem(kind, id, quiet){
     await q(sb.from('profiles').update({ [kind]: id }).eq('id', me.id));
     me[kind] = id; if(PROF[me.id]) PROF[me.id][kind] = id;
     if(kind === 'theme') applyTheme(id);
+    if(kind === 'lkbg' && lk) lk.bg = id || 'lkbg_gray';
     fil = null; await refresh(true); if(view === 'quest') render();
     if(!quiet) toast(id ? 'つけました' : '外しました');
   }catch(e){ toast(fail(e)); }
