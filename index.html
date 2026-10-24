@@ -430,7 +430,7 @@ aside{flex:1;padding:20px;min-width:0}
       <div class="err" id="aErr"></div>
       <button class="btn" id="aBtn">ログイン</button>
     </form>
-    <p class="note">※ メールアドレスに「fzk」を含む人だけ登録できます。<br>※ 投稿を見た人は、投稿した人に表示されます。<br>※ オンライン中の人は、他の人に表示されます（プロフィールでオフにできます）。</p>
+    <p class="note">※ メールアドレスに「fzk」を含む人だけ登録できます。<br>※ 投稿を見た人は、投稿した人に表示されます。<br>※ ポストは3日たつと自動で消えます（ピン止めしたポストは残ります）。<br>※ オンライン中の人は、他の人に表示されます（プロフィールでオフにできます）。</p>
   </div>
 </div>
 
@@ -712,7 +712,22 @@ async function loadMe(){
   applyTheme(p.theme);
   try{ const r = await sb.rpc('is_admin'); isAdmin = r.data === true; }catch(e){ isAdmin = false; }
   try{ myBlocks = new Set((await q(sb.from('blocks').select('blocked'))).map(r => r.blocked)); }catch(e){ myBlocks = new Set(); }
+  if(isAdmin) setTimeout(drainTrash, 4000);
 }
+/* 自動そうじで消えたポストの画像ファイルを、管理者がサイトを開いたときにまとめて消す */
+async function drainTrash(){
+  if(!me || !isAdmin) return;
+  try{
+    for(let k = 0; k < 10; k++){
+      const rows = await q(sb.rpc('admin_trash_list'));
+      if(!rows || !rows.length) break;
+      const paths = rows.map(r => r.path);
+      for(let i = 0; i < paths.length; i += 50){ try{ await sb.storage.from('images').remove(paths.slice(i, i + 50)); }catch(e){} }
+      await q(sb.rpc('admin_trash_clear', { paths }));
+    }
+  }catch(e){}
+}
+setInterval(() => { if(me && isAdmin && !document.hidden) drainTrash(); }, 3600000);
 
 async function doLogout(silent){
   stopPresence();
@@ -2082,7 +2097,7 @@ async function redirPoll(){
     if(!r.error && r.data === true) location.replace(REDIRECT_URL);
   }catch(e){}
 }
-setInterval(redirPoll, 4000);
+setInterval(redirPoll, 8000);
 async function adminRedirectAll(){
   if(!isAdmin) return;
   try{ await q(sb.rpc('admin_redirect_all')); toast('全員を移動させました（45秒間）'); }catch(e){ toast(fail(e)); }
