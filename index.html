@@ -60,6 +60,15 @@ html[data-theme]{background:var(--bg)}
 @keyframes frmHue{to{filter:hue-rotate(360deg)}}
 .frozen-tag{display:inline-block;margin:2px 0 6px;padding:2px 12px;border-radius:14px;background:rgba(96,165,250,.18);color:#60a5fa;font-weight:700;font-size:13px}
 .modbox{margin:8px 0}
+.tag{color:var(--main2);font-weight:700;cursor:pointer;text-decoration:none}
+.tag:hover{text-decoration:underline}
+.search-box{padding:12px 16px;border-bottom:1px solid var(--line)}
+.search-box input{width:100%;padding:11px 16px;border:1px solid var(--line);border-radius:22px;background:var(--bg);color:var(--text);font-size:15px}
+.s-sec{padding:14px 20px 6px;font-weight:800;font-size:14px;border-top:8px solid var(--bg)}
+.s-sec small{color:var(--sub);font-weight:600;margin-left:6px}
+.tchips{display:flex;flex-wrap:wrap;gap:8px;padding:6px 20px 14px}
+.tchips .chip{padding:6px 14px;border:1px solid var(--line);border-radius:18px;background:var(--bg)}
+.tchips .chip small{color:var(--sub);margin-left:6px;font-weight:600}
 *{box-sizing:border-box}
 body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Hiragino Sans","Noto Sans JP",sans-serif;background:var(--bg);color:var(--text)}
 button{font:inherit;cursor:pointer}
@@ -444,6 +453,7 @@ aside{flex:1;padding:20px;min-width:0}
   <nav>
     <h1 class="logo">filx</h1>
     <button class="nav-item" data-view="home">ホーム</button>
+    <button class="nav-item" data-view="search">検索</button>
     <button class="nav-item" data-view="notif">通知<span class="badge hidden" id="nBadge">0</span></button>
     <button class="nav-item" data-view="dm">DM<span class="badge hidden" id="dBadge">0</span></button>
     <button class="nav-item" data-view="quest">クエスト</button>
@@ -494,6 +504,7 @@ const avTxt = u => (hasAv(u) ? '' : esc([...(u.name||'?')][0].toUpperCase())) + 
 /* エラー文を日本語にする */
 function errMsg(e){
   const m = (e && e.message) || String(e);
+  if(/banned/i.test(m)) return 'このアカウントはbotの疑いで停止されています。解除してほしいときは管理者に連絡してください';
   if(/Invalid login credentials/i.test(m)) return 'メールアドレスかパスワードが違います';
   if(/already registered|already been registered/i.test(m)) return 'このメールアドレスは登録済みです';
   if(/Database error saving new user/i.test(m)) return '登録できませんでした。メールアドレスに「fzk」が入っているか、ユーザー名を確認してください（削除されたアカウントのメールアドレスは使えません）';
@@ -748,7 +759,7 @@ async function doLogout(silent){
   castSt = null; castSig = ''; { const b = $('#castBar'); if(b) b.remove(); }
   impSeen.clear(); impQueue.clear(); Object.keys(impTimers).forEach(k => { clearTimeout(impTimers[k]); delete impTimers[k]; });
   try{ if(typingCh){ sb.removeChannel(typingCh); } }catch(e){} typingCh = null; typingKey = ''; dmReply = null;
-  me = null; isAdmin = false; isGold = false; fil = null; pfxShown = ''; myBlocks = new Set(); feed = []; profile = null; notifs = []; convs = []; chat = null; unread = 0; unreadDM = 0; editing = false;
+  me = null; isAdmin = false; isGold = false; searchQ = ''; searchRes = null; fil = null; pfxShown = ''; myBlocks = new Set(); feed = []; profile = null; notifs = []; convs = []; chat = null; unread = 0; unreadDM = 0; editing = false;
   Object.keys(cimg).forEach(dropImg);
   if(!silent && sb){ try{ await sb.auth.signOut({ scope: 'local' }); }catch(e){} }
   $('#app').classList.add('hidden'); $('#fab').classList.add('hidden'); $('#modalHost').innerHTML = '';
@@ -779,7 +790,7 @@ $('#fab').onclick = openComposeModal;
 /* 右下の＋は、ホームのときだけ */
 function syncFab(){ $('#fab').classList.toggle('hidden', !me || view !== 'home'); }
 
-const TITLES = { home:'ホーム', notif:'通知', dm:'DM', quest:'クエスト', me:'プロフィール' };
+const TITLES = { home:'ホーム', search:'検索', notif:'通知', dm:'DM', quest:'クエスト', me:'プロフィール' };
 const headHTML = t => `<div class="head">${t}</div>`;
 const homeTop = () => headHTML('ホーム') + `<div id="onlineBox"></div>` +
   `<div class="subtabs"><button class="${homeTab==='all'?'on':''}" onclick="setTab('all')">すべて</button><button class="${homeTab==='following'?'on':''}" onclick="setTab('following')">フォロー中</button></div>`;
@@ -822,6 +833,10 @@ async function refresh(silent){
       await trySign(list.flatMap(p => p.images));
       if(view !== v || homeTab !== tab || !me) return;
       feed = list; feedMore = feedMoreNext; livePost = lp;
+    }
+    else if(v === 'search'){
+      if(searchQ) await runSearch(searchQ); else await loadTrending();
+      if(view !== v || !me) return;
     }
     else if(v === 'me'){
       const id = pid || me.id;
@@ -936,6 +951,7 @@ function render(){
   else if(view === 'notif') m.innerHTML = headHTML('通知') + notifHTML();
   else if(view === 'dm') dmWith ? renderChat(m) : renderConvs(m);
   else if(view === 'quest') renderQuest(m);
+  else if(view === 'search') renderSearch(m);
   else if(view === 'me') renderProfile(m);
   if(pendingScroll && view === 'home'){
     const e = $('#p-' + pendingScroll);
@@ -1039,7 +1055,7 @@ function postHTML(p){
       <div class="post-body">
         ${pinMark(p)}
         <div><span class="who link" onclick="openProfile('${a.id}')">${nm(a)}</span><span class="meta">${ago(p.ts)}</span></div>
-        ${p.cast ? castLabel(p) : (p.text ? `<div class="text">${esc(p.text)}</div>` : '')}
+        ${p.cast ? castLabel(p) : (p.text ? `<div class="text">${linkTags(esc(p.text))}</div>` : '')}
         ${galleryHTML(p)}
         <div class="actions">
           <button class="act ${liked?'liked':''}" onclick="toggleLike('${p.id}')">${liked?'❤️':'🤍'} ${p.likes.length}</button>
@@ -1080,7 +1096,7 @@ function commentsHTML(p){
 }
 function startReply(pid, cid){ replyTo[pid] = cid; openComments.add(pid); render(); const el = $('#ci-' + pid); if(el) el.focus(); }
 function cancelReply(pid){ delete replyTo[pid]; render(); }
-const allPosts = () => feed.concat(profile ? profile.posts.concat(profile.pinned ? [profile.pinned] : []) : []);
+const allPosts = () => feed.concat(profile ? profile.posts.concat(profile.pinned ? [profile.pinned] : []) : [], searchRes ? searchRes.posts : []);
 async function toggleLike(id){
   const was = (allPosts().find(x => x.id === id) || { likes: [] }).likes.includes(me.id);
   allPosts().filter(x => x.id === id).forEach(p => { p.likes = was ? p.likes.filter(u => u !== me.id) : p.likes.concat(me.id); });
@@ -1544,10 +1560,17 @@ async function openBan(){
 }
 async function botLog(){
   try{
-    const r = await sb.rpc('admin_bot_log'); if(r.error) throw r.error;
-    const d = r.data || [];
-    alert(d.length ? '自動でBANされた人（新しい順）\n\n' + d.map(x => `${new Date(x.created_at).toLocaleString('ja-JP')}  ${x.name || '?'}（${x.email || '?'}）\n  → ${x.reason}`).join('\n') : 'まだ自動BANされた人はいません');
+    const d = await q(sb.rpc('admin_bot_log'));
+    const rows = (d || []).map(x => `<div class="conv" style="align-items:flex-start"><div style="min-width:0;flex:1"><b>${esc(x.name || '?')}</b> <span class="small-sub">${esc(x.email || '')}</span>
+      <div class="small-sub">${new Date(x.created_at).toLocaleString('ja-JP')} ・ ${esc(x.reason)}${x.alive ? '' : ' ・ アカウントなし'}</div></div>
+      ${x.undone ? '<span class="small-sub">解除済み</span>' : `<button class="btn inline ghost" style="margin:0;padding:4px 12px" onclick="botUnban(${x.id})">解除する</button>`}</div>`).join('');
+    $('#modalHost').innerHTML = `<div class="modal-bg" id="mbg"><div class="modal"><div class="head" style="position:static">自動BANの記録</div><div class="ulist">${rows || '<div class="empty">まだ自動BANされた人はいません</div>'}</div><div class="ban-foot"><button class="btn inline ghost" onclick="closeModal()">閉じる</button></div></div></div>`;
+    $('#mbg').onclick = e => { if(e.target.id === 'mbg') closeModal(); };
   }catch(e){ toast(fail(e)); }
+}
+async function botUnban(id){
+  if(!confirm('この自動BANを解除しますか？\nアカウントが残っていればログインできるようになります（消えたポストなどは戻りません）。')) return;
+  try{ await q(sb.rpc('admin_bot_unban', { log_id: id })); toast('解除しました'); botLog(); }catch(e){ toast(fail(e)); }
 }
 function banSearchSoon(){ clearTimeout(banTimer); banTimer = setTimeout(banLoad, 300); }
 async function banLoad(){
@@ -1739,6 +1762,70 @@ async function lkSave(){
     if(lk.bg !== lk.bg0){ await q(sb.from('profiles').update({ lkbg: lk.bg }).eq('id', me.id)); me.lkbg = lk.bg; }
     toast('ロッカーを保存しました'); openLocker(lk.uid);
   }catch(e){ toast(fail(e)); }
+}
+
+
+/* ========== 検索・ハッシュタグ ========== */
+let searchQ = '', searchRes = null, trending = [], searchTimer = null, searchSeq = 0;
+const TAG_RE = /(^|[^\p{L}\p{N}_])[#＃]([\p{L}\p{N}_]{1,30})(?![\p{L}\p{N}_])/gu;
+const linkTags = html => html.replace(TAG_RE, (m, pre, tag) => `${pre}<a class="tag" data-tag="${tag}">#${tag}</a>`);
+document.addEventListener('click', e => {
+  const a = e.target.closest && e.target.closest('a.tag');
+  if(a && me){ e.preventDefault(); e.stopPropagation(); searchTag(a.dataset.tag); }
+}, true);
+function searchTag(tag){
+  closeModal(); searchQ = '#' + tag; searchRes = null; view = 'search'; dmWith = null; editing = false; go(); window.scrollTo(0, 0);
+}
+async function loadTrending(){
+  try{ const r = await q(sb.rpc('trending_tags')); trending = r || []; }catch(e){ trending = []; }
+}
+async function runSearch(text){
+  const my = ++searchSeq, s = text.trim();
+  if(!s){ searchRes = null; return; }
+  const isTag = /^[#＃]/.test(s);
+  const pat = '%' + s.replace(/[\\%_]/g, '\\$&') + '%';
+  const [users, ids] = await Promise.all([
+    isTag ? Promise.resolve([]) : q(sb.from('profiles').select('id,name,bio,avatar,verified,gold,is_admin,frozen_until,frame,hat,badge,effect,pfx').ilike('name', pat).order('name').limit(20)),
+    q(sb.rpc('search_posts', { q: s }))
+  ]);
+  let posts = [];
+  if(ids && ids.length){
+    const rows = await q(sb.from('posts').select(PSEL).in('id', ids.map(r => r.id)).order('created_at', { ascending:false }));
+    posts = rows.map(normPost);
+    await ensureProfiles(posts.flatMap(p => [p.uid, ...p.comments.map(c => c.uid)]));
+    await trySign(posts.flatMap(p => p.images));
+  }
+  if(my !== searchSeq) return;
+  const now = Date.now();
+  users.forEach(u => { PROF[u.id] = Object.assign({}, u, { t: now }); });
+  searchRes = { q: s, users: users.filter(u => !myBlocks.has(u.id)), posts };
+}
+function searchBodyHTML(){
+  if(!searchRes){
+    const chips = trending.length ? trending.map(t => `<a class="tag chip" data-tag="${esc(t.tag)}">#${esc(t.tag)}<small>${t.n}</small></a>`).join('') : '';
+    return `<div class="s-sec">トレンドのタグ <small>この3日間</small></div>` +
+      (chips ? `<div class="tchips">${chips}</div>` : `<div class="empty" style="padding:14px 20px">まだタグがありません<br>ポストに <b>#ひとこと</b> のように書くと、タグになります</div>`) +
+      `<div class="empty" style="padding:8px 20px 30px">ユーザー名・ポストの言葉・#タグ で探せます</div>`;
+  }
+  const r = searchRes;
+  const us = r.users.length ? r.users.map(u => `<div class="conv" onclick="openProfile('${u.id}')"><div class="avatar" style="${avBG(u)}">${avTxt(u)}</div><div style="min-width:0;flex:1"><b>${nm(u)}</b><div class="small-sub">${esc((u.bio || '').slice(0, 60))}</div></div></div>`).join('') : '';
+  return (r.users.length ? `<div class="s-sec">ユーザー（${r.users.length}）</div>${us}` : '') +
+    `<div class="s-sec">ポスト（${r.posts.length}${r.posts.length >= 30 ? '件以上' : '件'}）</div>` +
+    (r.posts.length ? r.posts.map(postHTML).join('') : '<div class="empty" style="padding:14px 20px">見つかりませんでした</div>') +
+    (!r.users.length && r.q[0] !== '#' && r.q[0] !== '＃' ? '' : '');
+}
+function renderSearch(m){
+  m.innerHTML = headHTML('検索') + `<div class="search-box"><input id="sInput" type="text" maxlength="50" placeholder="ユーザー名・ポスト・#タグ" value="${esc(searchQ)}" oninput="searchSoon(this.value)" onkeydown="if(event.key==='Enter'){searchNow(this.value)}" autocomplete="off"></div><div id="sBody">${searchBodyHTML()}</div>`;
+}
+function searchSoon(v){ clearTimeout(searchTimer); searchTimer = setTimeout(() => searchNow(v), 400); }
+async function searchNow(v){
+  clearTimeout(searchTimer); searchQ = v.trim();
+  try{
+    if(searchQ) await runSearch(searchQ); else { searchRes = null; await loadTrending(); }
+  }catch(e){ toast(fail(e)); return; }
+  if(view !== 'search' || !$('#sBody')) return;
+  $('#sBody').innerHTML = searchBodyHTML();
+  observePosts(); paintOnline();
 }
 
 /* ========== プロフィール演出（プロフィールを開くとアニメが出る） ========== */
