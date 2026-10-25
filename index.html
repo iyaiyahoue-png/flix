@@ -55,6 +55,11 @@ html[data-theme]{background:var(--bg)}
 .lk-swatch{width:100%;aspect-ratio:3/4;border-radius:10px;max-height:110px;margin:0 auto 6px;border:1px solid var(--line)}
 .lk-swatch.sm{width:30px;height:30px;aspect-ratio:auto;max-height:none;margin:0;border-radius:6px}
 .lk-ico{font-size:54px;text-align:center;line-height:1.3;margin-bottom:4px}
+.frm.sq,.avatar .frm.sq{border-radius:28%}
+.frm.sq.f-gold,.frm.sq.f-flame,.frm.sq.f-aurora,.frm.sq.f-rainbow,.frm.sq.f-legend{padding:var(--rw);-webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask:linear-gradient(#000 0 0) content-box exclude,linear-gradient(#000 0 0);mask-composite:exclude;animation:frmHue 4s linear infinite}
+@keyframes frmHue{to{filter:hue-rotate(360deg)}}
+.frozen-tag{display:inline-block;margin:2px 0 6px;padding:2px 12px;border-radius:14px;background:rgba(96,165,250,.18);color:#60a5fa;font-weight:700;font-size:13px}
+.modbox{margin:8px 0}
 *{box-sizing:border-box}
 body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Hiragino Sans","Noto Sans JP",sans-serif;background:var(--bg);color:var(--text)}
 button{font:inherit;cursor:pointer}
@@ -478,8 +483,9 @@ const NAME_RE = { test: n => { const c = [...String(n)].length; return c >= 1 &&
 /* アイコン（画像があれば画像、なければ頭文字） */
 const AVRE = /^data:image\/jpeg;base64,[A-Za-z0-9+\/=]+$/;
 const hasAv = u => !!(u.avatar && AVRE.test(u.avatar));
-const avBG = u => hasAv(u) ? `background:url('${u.avatar}') center/cover` : `background:${colorOf(u.name||'?')}`;
-const decoHTML = u => (u.frame ? `<i class="frm f-${esc(u.frame)}"></i>` : '')
+const isSq = u => !!(u && (u.gold || u.is_admin));          // 金バッジ・管理者のアイコンは角丸の四角
+const avBG = u => (hasAv(u) ? `background:url('${u.avatar}') center/cover` : `background:${colorOf(u.name||'?')}`) + (isSq(u) ? ';border-radius:28%' : '');
+const decoHTML = u => (u.frame ? `<i class="frm f-${esc(u.frame)}${isSq(u) ? ' sq' : ''}"></i>` : '')
   + (u.effect ? `<i class="deco fx x-${esc(u.effect)}"></i>` : '')
   + (u.hat ? `<i class="deco hat x-${esc(u.hat)}"></i>` : '')
   + (u.badge ? `<i class="deco bdg x-${esc(u.badge)}"></i>` : '');
@@ -514,7 +520,7 @@ async function cnt(promise){ const r = await promise; if(r.error) throw r.error;
 /* ========== 状態 ========== */
 let sb = null;
 let me = null;                       // {id, email, name, bio, avatar}
-let isAdmin = false;                 // 管理者か（画面の表示用。本当の判定はデータベース側）
+let isAdmin = false, isGold = false;                 // 管理者か（画面の表示用。本当の判定はデータベース側）
 const PROF = {};                     // ユーザー情報のキャッシュ
 let view = 'home', homeTab = 'all', profileId = null, editing = false, pendingAvatar, dmWith = null;
 const PAGE = 10;                       // タイムラインは10件ずつ読み込む
@@ -529,7 +535,7 @@ async function ensureProfiles(ids){
   const now = Date.now();
   const need = [...new Set(ids)].filter(id => id && (!PROF[id] || now - PROF[id].t > 120000));
   if(!need.length) return;
-  const rows = await q(sb.from('profiles').select('id,name,bio,avatar,verified,frame,hat,badge,effect,pfx').in('id', need));
+  const rows = await q(sb.from('profiles').select('id,name,bio,avatar,verified,gold,is_admin,frozen_until,frame,hat,badge,effect,pfx').in('id', need));
   rows.forEach(p => PROF[p.id] = Object.assign({}, p, { t: now }));
 }
 const normPost = p => ({
@@ -698,19 +704,26 @@ function applyTheme(t){
   if(t && t !== 'th_dark') document.documentElement.setAttribute('data-theme', t); else document.documentElement.removeAttribute('data-theme');
   try{ if(t && t !== 'th_dark') localStorage.setItem('filx_theme', t); else localStorage.removeItem('filx_theme'); }catch(e){}
 }
+/* 管理者・金バッジの人が、その相手に手を出せるか（管理者はだれにでも／金バッジの人は、管理者と金バッジの人以外に）*/
+const canMod = uid => { if(!me || uid === me.id) return false; if(isAdmin) return true; if(!isGold) return false; const t = U(uid); return !t.is_admin && !t.gold; };
+
 /* 認証バッジ（青いチェック）つきの名前 */
 const VF = '<svg class="vf" viewBox="0 0 24 24" aria-label="認証済み"><title>認証済み</title><circle cx="12" cy="12" r="11" fill="#1d9bf0"/><path d="M7 12.5l3.2 3.2L17 9" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>';
-const nm = u => esc(u.name) + (u.verified ? VF : '');
+const VG = '<svg class="vf" viewBox="0 0 24 24" aria-label="金バッジ"><title>金バッジ（認証済み・モデレーター）</title><defs><linearGradient id="gG" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ffe27a"/><stop offset="1" stop-color="#d89a00"/></linearGradient></defs><polygon points="12.00,0.60 14.90,3.06 18.70,2.78 19.60,6.47 22.84,8.48 21.40,12.00 22.84,15.52 19.60,17.53 18.70,21.22 14.90,20.94 12.00,23.40 9.10,20.94 5.30,21.22 4.40,17.53 1.16,15.52 2.60,12.00 1.16,8.48 4.40,6.47 5.30,2.78 9.10,3.06" fill="url(#gG)" stroke="#b07a00" stroke-width=".6" stroke-linejoin="round"/><path d="M7 12.5l3.2 3.2L17 9" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+const VP = '<svg class="vf" viewBox="0 0 24 24" aria-label="プラチナバッジ"><title>プラチナバッジ（管理者）</title><defs><linearGradient id="gP" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#f4f8ff"/><stop offset=".5" stop-color="#b9c6d8"/><stop offset="1" stop-color="#8296ad"/></linearGradient></defs><polygon points="12.00,0.60 14.90,3.06 18.70,2.78 19.60,6.47 22.84,8.48 21.40,12.00 22.84,15.52 19.60,17.53 18.70,21.22 14.90,20.94 12.00,23.40 9.10,20.94 5.30,21.22 4.40,17.53 1.16,15.52 2.60,12.00 1.16,8.48 4.40,6.47 5.30,2.78 9.10,3.06" fill="url(#gP)" stroke="#5b6d84" stroke-width=".7" stroke-linejoin="round"/><circle cx="12" cy="12" r="5.6" fill="none" stroke="#fff" stroke-width="1.4"/><path d="M9.3 12.2l1.9 1.9 3.5-3.7" fill="none" stroke="#3a4a60" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+const badgeOf = u => u.is_admin ? VP : u.gold ? VG : u.verified ? VF : '';
+const nm = u => esc(u.name) + badgeOf(u);
 async function loadMe(){
   const { data } = await sb.auth.getSession();
   const user = data.session && data.session.user;
   if(!user) throw new Error('ログインできませんでした');
-  const p = await q(sb.from('profiles').select('id,name,bio,avatar,verified,pinned_post_id,frame,hat,badge,effect,pfx,theme').eq('id', user.id).maybeSingle());
+  const p = await q(sb.from('profiles').select('id,name,bio,avatar,verified,gold,is_admin,frozen_until,pinned_post_id,frame,hat,badge,effect,pfx,theme').eq('id', user.id).maybeSingle());
   if(!p) throw new Error('プロフィールが見つかりません');
   me = Object.assign({}, p, { email: user.email });
   PROF[me.id] = Object.assign({}, p, { t: Date.now() });
   applyTheme(p.theme);
   try{ const r = await sb.rpc('is_admin'); isAdmin = r.data === true; }catch(e){ isAdmin = false; }
+  isGold = !!p.gold && !isAdmin;
   try{ myBlocks = new Set((await q(sb.from('blocks').select('blocked'))).map(r => r.blocked)); }catch(e){ myBlocks = new Set(); }
   if(isAdmin) setTimeout(drainTrash, 4000);
 }
@@ -735,7 +748,7 @@ async function doLogout(silent){
   castSt = null; castSig = ''; { const b = $('#castBar'); if(b) b.remove(); }
   impSeen.clear(); impQueue.clear(); Object.keys(impTimers).forEach(k => { clearTimeout(impTimers[k]); delete impTimers[k]; });
   try{ if(typingCh){ sb.removeChannel(typingCh); } }catch(e){} typingCh = null; typingKey = ''; dmReply = null;
-  me = null; isAdmin = false; fil = null; pfxShown = ''; myBlocks = new Set(); feed = []; profile = null; notifs = []; convs = []; chat = null; unread = 0; unreadDM = 0; editing = false;
+  me = null; isAdmin = false; isGold = false; fil = null; pfxShown = ''; myBlocks = new Set(); feed = []; profile = null; notifs = []; convs = []; chat = null; unread = 0; unreadDM = 0; editing = false;
   Object.keys(cimg).forEach(dropImg);
   if(!silent && sb){ try{ await sb.auth.signOut({ scope: 'local' }); }catch(e){} }
   $('#app').classList.add('hidden'); $('#fab').classList.add('hidden'); $('#modalHost').innerHTML = '';
@@ -1033,7 +1046,7 @@ function postHTML(p){
           <button class="act" onclick="toggleComments('${p.id}')">💬 ${p.comments.length}</button>
           ${mine || isAdmin ? `<button class="act" onclick="showViewers('${p.id}')" title="見た人を見る">👁 ${p.views}</button>` : `<span class="act static" title="表示された回数">👁 ${p.views}</span>`}
           ${mine ? `<button class="act" onclick="togglePin('${p.id}')">${me.pinned_post_id === p.id ? '📌 ピン留めを外す' : '📌 ピン留め'}</button><button class="act del" onclick="delPost('${p.id}')">🗑 削除</button>`
-                 : (isAdmin ? `<button class="act del" onclick="delPost('${p.id}')">🗑 削除（管理者）</button>` : '')}
+                 : (canMod(p.uid) ? `<button class="act del" onclick="delPost('${p.id}')">🗑 削除（${isAdmin ? '管理者' : '金バッジ'}）</button>` : '')}
         </div>
       </div>
     </div>
@@ -1044,7 +1057,7 @@ const replyTo = {};                  // 投稿ID → 返信しようとしてい
 function commentHTML(p, c, parentName){
   const a = U(c.uid), liked = c.likes.includes(me.id);
   const del = c.uid === me.id ? `<button class="act del" onclick="delComment('${p.id}','${c.id}')">削除</button>`
-            : (isAdmin ? `<button class="act del" onclick="delComment('${p.id}','${c.id}')">削除（管理者）</button>` : '');
+            : (canMod(c.uid) ? `<button class="act del" onclick="delComment('${p.id}','${c.id}')">削除（${isAdmin ? '管理者' : '金バッジ'}）</button>` : '');
   const to = parentName ? `<div class="replyto">↪ <b>@${esc(parentName)}</b> への返信</div>` : '';
   return `<div class="comment${parentName ? ' reply' : ''}" id="c-${c.id}"><span class="avatar sm link" style="${avBG(a)}" onclick="openProfile('${a.id}')">${avTxt(a)}</span><span class="who link" onclick="openProfile('${a.id}')">${nm(a)}</span><span class="meta">${ago(c.ts)}</span>${to}<div class="text" style="margin:2px 0 0">${esc(c.text)}</div><div class="actions c-act"><button class="act ${liked?'liked':''}" onclick="toggleCommentLike('${p.id}','${c.id}')">${liked?'❤️':'🤍'} ${c.likes.length}</button><button class="act" onclick="startReply('${p.id}','${c.id}')">返信</button>${del}</div></div>`;
 }
@@ -1129,7 +1142,7 @@ async function toggleCommentLike(pid, cid){
 async function delComment(pid, cid){
   const c = findComment(pid, cid); if(!c) return;
   const hasKids = allPosts().some(p => p.id === pid && p.comments.some(x => x.parent === cid));
-  if(!confirm((c.uid === me.id ? 'このコメントを削除しますか？' : '管理者として、このコメントを削除しますか？') + (hasKids ? '\nこのコメントへの返信も一緒に消えます。' : ''))) return;
+  if(!confirm((c.uid === me.id ? 'このコメントを削除しますか？' : (isAdmin ? '管理者' : '金バッジの権限') + 'として、このコメントを削除しますか？') + (hasKids ? '\nこのコメントへの返信も一緒に消えます。' : ''))) return;
   try{
     const rows = await q(sb.from('comments').delete().eq('id', cid).select('id'));
     if(!rows.length) throw new Error('削除できませんでした');
@@ -1150,7 +1163,7 @@ async function addComment(id){
 async function delPost(id){
   const p = allPosts().find(x => x.id === id);
   const own = !!p && p.uid === me.id;
-  if(!confirm(own ? 'この投稿を削除しますか？' : '管理者として、この投稿を削除しますか？')) return;
+  if(!confirm(own ? 'この投稿を削除しますか？' : (isAdmin ? '管理者' : '金バッジの権限') + 'として、この投稿を削除しますか？')) return;
   try{
     const rows = await q(sb.from('posts').delete().eq('id', id).select('id,image_paths'));
     if(!rows.length) throw new Error('削除できませんでした');
@@ -1440,7 +1453,7 @@ function renderProfile(m){
   } else {
     top = `<div class="profile-top">
       <div class="avatar" style="${avBG(u)}">${avTxt(u)}</div>
-      <h2>${nm(u)}</h2>
+      <h2>${nm(u)}</h2>${frozenTag(u)}
       <div class="onltag" data-uid="${esc(u.id)}">● オンライン</div>
       ${own ? `<p>${esc(me.email || '')}</p>` : ''}
       <p class="bio">${u.bio ? esc(u.bio) : (own ? '<span style="color:var(--sub)">ステータスメッセージはまだありません</span>' : '')}</p>
@@ -1460,6 +1473,7 @@ function renderProfile(m){
                ${profile.blocked ? '<p class="bio">この人をブロックしています</p>' : ''}
                ${isAdmin ? '' : `<div><button class="btn inline ghost-danger" onclick="toggleBlock('${u.id}')">${profile.blocked ? 'ブロックを解除する' : 'ブロックする'}</button></div>`}
                 ${isAdmin ? `<div id="admFil" style="margin:8px 0"></div>` : ''}
+              ${canMod(u.id) ? modBlock(u) : ''}
               ${isAdmin ? `<div><button class="btn inline ghost-danger" onclick="adminDeleteUser('${u.id}')">このアカウントを削除（管理者）</button></div>` : ''}`}
     </div>`;
   }
@@ -1589,10 +1603,35 @@ async function adminSetVerified(id, on){
   if(!isAdmin) return;
   try{
     await q(sb.rpc('admin_set_verified', { target: id, on_: on }));
-    if(PROF[id]) PROF[id].verified = on;
+    if(PROF[id]){ PROF[id].verified = on; if(!on) PROF[id].gold = false; }
     if(me && me.id === id) me.verified = on;
     toast(on ? '認証バッジをつけました' : '認証バッジを外しました');
     if(profile && profile.user && profile.user.id === id) profile.user.verified = on;
+    render(); if(view === 'me' && profile && !profile.own) loadAdmFil(id);
+  }catch(e){ toast(fail(e)); }
+}
+/* ----- 凍結（1時間）。管理者と金バッジの人ができる ----- */
+const isFrozen = u => !!(u && u.frozen_until && Date.parse(u.frozen_until) > Date.now());
+const frozenTag = u => isFrozen(u) ? `<div class="frozen-tag">❄ 凍結中（あと${Math.max(1, Math.ceil((Date.parse(u.frozen_until) - Date.now()) / 60000))}分）</div>` : '';
+const modBlock = u => `<div class="modbox"><span class="small-sub">${isAdmin ? '管理' : '金バッジの権限'}：</span> ${isFrozen(u)
+  ? `<button class="btn inline ghost" style="margin:0;padding:4px 12px" onclick="modFreeze('${u.id}', false)">凍結を解除する</button>`
+  : `<button class="btn inline ghost-danger" style="margin:0;padding:4px 12px" onclick="modFreeze('${u.id}', true)">❄ 凍結する（1時間）</button>`}</div>`;
+async function modFreeze(id, on){
+  if(!canMod(id)) return;
+  const name = (PROF[id] || {}).name || 'この人';
+  if(on && !confirm(`「${name}」を1時間凍結しますか？\nそのあいだ、投稿・コメント・DM・いいね・フォローができなくなります。`)) return;
+  try{
+    if(on){ const t = await q(sb.rpc('mod_freeze', { target: id })); if(PROF[id]) PROF[id].frozen_until = t; toast(`「${name}」を1時間凍結しました`); }
+    else { await q(sb.rpc('mod_unfreeze', { target: id })); if(PROF[id]) PROF[id].frozen_until = null; toast(`「${name}」の凍結を解除しました`); }
+    render();
+  }catch(e){ toast(fail(e)); }
+}
+async function adminSetGold(id, on){
+  if(!isAdmin) return;
+  try{
+    await q(sb.rpc('admin_set_gold', { target: id, on_: on }));
+    if(PROF[id]) PROF[id].gold = on;
+    toast(on ? '金バッジに昇格しました' : '金バッジを外しました（青バッジのままです）');
     render(); if(view === 'me' && profile && !profile.own) loadAdmFil(id);
   }catch(e){ toast(fail(e)); }
 }
@@ -1601,8 +1640,8 @@ async function loadAdmFil(id){
   try{
     const n = await q(sb.rpc('admin_get_fil', { target: id }));
     const el2 = $('#admFil'); if(!el2 || !profile || profile.user.id !== id) return;
-    const vf = !!(PROF[id] && PROF[id].verified);
-    el2.innerHTML = `<span class="small-sub">fil：<b>${n}</b></span> <button class="btn inline ghost" style="margin:0;padding:4px 12px" onclick="adminSetFil('${id}', ${n})">filを変更</button> <button class="btn inline ghost" style="margin:0;padding:4px 12px" onclick="adminSetVerified('${id}', ${!vf})">${vf ? '認証バッジを外す' : '認証バッジをつける'}</button>`;
+    const vf = !!(PROF[id] && PROF[id].verified), gd = !!(PROF[id] && PROF[id].gold);
+    el2.innerHTML = `<span class="small-sub">fil：<b>${n}</b></span> <button class="btn inline ghost" style="margin:0;padding:4px 12px" onclick="adminSetFil('${id}', ${n})">filを変更</button> <button class="btn inline ghost" style="margin:0;padding:4px 12px" onclick="adminSetVerified('${id}', ${!vf})">${vf ? '青バッジを外す' : '青バッジをつける'}</button>${vf ? ` <button class="btn inline ghost" style="margin:0;padding:4px 12px" onclick="adminSetGold('${id}', ${!gd})">${gd ? '金バッジを外す' : '金バッジに昇格'}</button>` : ''}`;
   }catch(e){}
 }
 
@@ -1832,7 +1871,7 @@ async function castChatLoad(){
     if(sig === chatSig && box.children.length) return;
     chatSig = sig;
     const near = box.scrollTop + box.clientHeight >= box.scrollHeight - 40;
-    box.innerHTML = rows.length ? rows.map(r => `<div class="lcm"><b>${nm(U(r.user_id))}</b> ${esc(r.text)}${(r.user_id === me.id || isAdmin) ? ` <span class="lcx" onclick="castChatDel('${r.id}')">✕</span>` : ''}</div>`).join('')
+    box.innerHTML = rows.length ? rows.map(r => `<div class="lcm"><b>${nm(U(r.user_id))}</b> ${esc(r.text)}${(r.user_id === me.id || canMod(r.user_id)) ? ` <span class="lcx" onclick="castChatDel('${r.id}')">✕</span>` : ''}</div>`).join('')
                                 : '<div class="lcm sub">まだコメントはありません。最初のコメントをどうぞ！</div>';
     if(near || !box.dataset.init){ box.scrollTop = box.scrollHeight; box.dataset.init = '1'; }
   }catch(e){}
@@ -2151,7 +2190,8 @@ function itemCard(f){
 }
 function renderQuest(m){
   if(!fil){ m.innerHTML = headHTML('クエスト') + '<div class="empty">読み込み中…</div>'; return; }
-  const daily = qSort(fil.quests.filter(q => q.kind === 'daily')), once = qSort(fil.quests.filter(q => q.kind === 'once'));
+  const byK = k => qSort(fil.quests.filter(q => q.kind === k));
+  const hourly = byK('hourly'), daily = byK('daily'), weekly = byK('weekly'), once = byK('once');
   const ready = fil.quests.filter(q => q.progress >= q.target && !q.claimed).length;
   const tabs = `<div class="subtabs"><button class="${questTab==='quest'?'on':''}" onclick="setQuestTab('quest')">クエスト${ready ? `<span class="badge" style="margin-left:6px">${ready}</span>` : ''}</button><button class="${questTab==='shop'?'on':''}" onclick="setQuestTab('shop')">ショップ</button></div>`;
   const bal = `<div class="fil-bal"><span class="fil-coin">fil</span><b>${fil.infinite ? '∞' : fil.balance}</b><small>fil</small>${fil.infinite ? '<span class="fil-adm">管理者</span>' : ''}</div>`;
@@ -2161,7 +2201,11 @@ function renderQuest(m){
     const list = fil.items.filter(f => f.kind === shopKind);
     body = kinds + `<div class="shopgrid">${list.map(itemCard).join('')}</div>`;
   } else {
-    body = `<div class="q-sec">デイリー <small>毎日0時にリセット</small></div>${daily.map(questCard).join('')}
+    const jst = new Date(Date.now() + 9 * 3600000), mm = 60 - jst.getUTCMinutes();
+    const wLeft = (() => { const dow = (jst.getUTCDay() + 6) % 7; const mins = (6 - dow) * 1440 + (23 - jst.getUTCHours()) * 60 + (60 - jst.getUTCMinutes()); const d = Math.floor(mins / 1440), h = Math.floor(mins % 1440 / 60); return d ? `あと${d}日${h}時間` : `あと${h}時間`; })();
+    body = `<div class="q-sec">毎時 <small>毎時0分にリセット（あと${mm}分）</small></div>${hourly.map(questCard).join('')}
+            <div class="q-sec">デイリー <small>毎日0時にリセット</small></div>${daily.map(questCard).join('')}
+            <div class="q-sec">ウィークリー <small>毎週月曜0時にリセット（${wLeft}）</small></div>${weekly.map(questCard).join('')}
             <div class="q-sec">チャレンジ <small>1回だけ・ごほうび大きめ</small></div>${once.map(questCard).join('')}`;
   }
   m.innerHTML = headHTML('クエスト') + bal + tabs + `<div id="questBox">${body}</div>`;
