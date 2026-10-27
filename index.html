@@ -179,14 +179,20 @@ aside{flex:1;padding:20px;min-width:0}
 .meta{color:var(--sub);font-size:12px;font-weight:400;margin-left:6px}
 .more-btn{color:var(--main);cursor:pointer;font-size:.9em;white-space:nowrap}.more-btn:hover{text-decoration:underline}[hidden]{display:none!important}
 .text{margin:6px 0 10px;white-space:pre-wrap;word-break:break-word;line-height:1.6}
-.actions{display:flex;gap:24px}
-.act{border:none;background:none;color:var(--sub);display:flex;align-items:center;gap:6px;font-size:14px;padding:4px 0}
+.actions{display:flex;gap:8px 18px;flex-wrap:wrap}
+.act{white-space:nowrap;border:none;background:none;color:var(--sub);display:flex;align-items:center;gap:6px;font-size:14px;padding:4px 0}
 .act:hover{color:var(--main)}
 .act.liked{color:var(--red)}
 .act.del:hover{color:var(--red)}
 .comments{margin:12px 0 0 54px;border-left:2px solid var(--line);padding-left:12px}
 .comment{padding:8px 0;font-size:14px}
 .comment .who{font-size:13px}
+.qcard{border:1px solid var(--line);border-radius:12px;padding:8px 10px;margin-top:8px;font-size:14px}.qcard.gone{color:var(--sub)}
+.qimg{display:block;max-width:100%;max-height:160px;border-radius:8px;margin-top:6px;object-fit:cover}
+.post .rted,.act.rted{color:#22c55e}
+.cimgbtn{flex-shrink:0;display:flex;align-items:center;justify-content:center;width:36px;border:1px solid var(--line);border-radius:20px;cursor:pointer}
+.comment .gallery{max-width:240px}
+.comments .pv{margin-top:6px}
 .cform{display:flex;gap:8px;margin-top:8px}
 .cform input{flex:1;min-width:0;padding:8px 12px;border:1px solid var(--line);border-radius:20px;outline:none}
 .cform button{flex-shrink:0;white-space:nowrap;padding:8px 16px;border:none;border-radius:20px;background:var(--main);color:#fff;font-weight:700}
@@ -224,14 +230,29 @@ aside{flex:1;padding:20px;min-width:0}
 
 @media(max-width:820px){
   #app{display:block}
-  nav{position:fixed;bottom:0;top:auto;left:0;right:0;width:100%;height:auto;flex-direction:row;justify-content:space-around;border-right:none;border-top:1px solid var(--line);padding:4px;z-index:20}
-  nav .logo,.nav-post{display:none}
-  .nav-item{flex-direction:column;gap:2px;font-size:10px;padding:6px 8px;flex:1;align-items:center}
-  .nav-item .badge{position:absolute;top:2px;right:18%;margin:0}
-  main{max-width:none;border-right:none;padding-bottom:70px}
+  /* スマホ: 下のバーはなくして、左上のアイコンから左にメニューを出す（Xと同じ） */
+  nav{position:fixed;top:0;bottom:0;left:0;right:auto;width:min(300px,82vw);height:100%;flex-direction:column;justify-content:flex-start;border-right:1px solid var(--line);border-top:none;padding:16px 12px;z-index:60;transform:translateX(-102%);transition:transform .22s ease;overflow-y:auto;box-shadow:none}
+  body.nav-open nav{transform:none;box-shadow:8px 0 30px rgba(0,0,0,.5)}
+  nav .logo,.nav-post{display:block}
+  nav .logo{display:none}
+  .nav-item{flex-direction:row;gap:14px;font-size:18px;padding:13px 14px;flex:none;align-items:center}
+  .nav-item .badge{position:static;margin-left:auto}
+  body .nav-bg{display:block;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:55;opacity:0;pointer-events:none;transition:opacity .22s}
+  body.nav-open .nav-bg{opacity:1;pointer-events:auto}
+  main{max-width:none;border-right:none;padding-bottom:20px}
   .fab:not(.hidden){display:flex!important}
-  .chat-bar{bottom:var(--navh,52px)}
+  .chat-bar{bottom:0}
+  .head .head-av{display:inline-flex}
+  .head:has(.head-av){display:flex;align-items:center}
+  nav .nav-user{display:block}
 }
+.nav-bg,.nav-user,.head-av{display:none}
+.nav-user{padding:6px 12px 14px;margin-bottom:8px;border-bottom:1px solid var(--line);cursor:pointer}
+.nav-user .avatar{margin-bottom:8px}
+.nav-user b{font-size:17px;display:block}
+.head-av{--d:34px;width:34px;height:34px;font-size:15px;margin-right:14px;flex-shrink:0;position:relative;cursor:pointer;align-items:center;justify-content:center}
+.head .head-av .deco,.head .head-av .dot{display:none}
+.head-av.unread::after{content:'';position:absolute;top:-2px;right:-2px;width:11px;height:11px;border-radius:50%;background:var(--red);border:2px solid var(--card)}
 .fab{display:none;position:fixed;right:16px;bottom:80px;width:54px;height:54px;border-radius:50%;background:var(--main);color:#fff;border:none;font-size:26px;align-items:center;justify-content:center;box-shadow:0 6px 20px rgba(0,0,0,.5);z-index:25}
 
 /* v2 additions */
@@ -368,7 +389,7 @@ aside{flex:1;padding:20px;min-width:0}
 .s-desc{color:var(--sub);font-size:11px;min-height:28px;line-height:1.3}
 .s-price{color:#f5a623;font-weight:800;font-size:13px}
 .shopitem .btn{white-space:nowrap;font-size:13px;padding:8px 12px}
-@media(max-width:820px){.nav-item{white-space:nowrap;padding:6px 2px!important}}
+
 
 /* ===== あたまの飾り・バッジ・エフェクト（アバターのまわりに重ねる） ===== */
 .deco{position:absolute;pointer-events:none;font-style:normal;line-height:1}
@@ -432,7 +453,7 @@ aside{flex:1;padding:20px;min-width:0}
 /* ===== フィルキャスト ===== */
 .livedot{width:9px;height:9px;border-radius:50%;background:#ff4d4d;margin-left:6px;display:inline-block;animation:frmPulse 1.2s ease-in-out infinite}
 .livedot.hidden{display:none}
-@media(max-width:820px){.nav-item .livedot{position:absolute;top:4px;right:22%;margin:0}}
+@media(max-width:820px){.nav-item .livedot{margin-left:6px}}
 .rec{color:#ff4d4d}
 .cast-card{margin:16px 20px;padding:16px;border:1px solid var(--line);border-radius:16px;background:var(--card)}
 .cast-card.live{border-color:#ff4d4d}
@@ -452,7 +473,7 @@ aside{flex:1;padding:20px;min-width:0}
 .castbar{position:fixed;left:50%;transform:translateX(-50%);bottom:16px;z-index:45;background:#2b3040;border:1px solid #ff4d4d;color:#fff;border-radius:22px;padding:8px 16px;font-size:13px;cursor:pointer;white-space:nowrap;max-width:94vw;overflow:hidden;text-overflow:ellipsis}
 .castbar u{margin-left:6px;color:#9fb3ff}
 .castbar.hidden{display:none}
-@media(max-width:820px){.castbar{bottom:62px}}
+@media(max-width:820px){.castbar{bottom:16px}}
 
 /* ===== ライブ配信のポスト・チャット ===== */
 .castpost{border-left:3px solid #ff4d4d;background:rgba(255,77,77,.05)}
@@ -493,7 +514,8 @@ aside{flex:1;padding:20px;min-width:0}
 
 <!-- アプリ本体 -->
 <div id="app" class="hidden">
-  <nav>
+  <nav id="sideNav">
+    <div class="nav-user" id="navUser" onclick="navUserClick()"></div>
     <h1 class="logo">filx</h1>
     <button class="nav-item" data-view="home">ホーム</button>
     <button class="nav-item" data-view="search">検索</button>
@@ -503,6 +525,7 @@ aside{flex:1;padding:20px;min-width:0}
     <button class="nav-item" data-view="me">プロフィール</button>
     <button class="btn nav-post" id="openCompose">ポストする</button>
   </nav>
+  <div class="nav-bg" id="navBg" onclick="closeNav()"></div>
   <main id="main"></main>
 </div>
 <button class="fab hidden" id="fab">＋</button>
@@ -593,12 +616,34 @@ async function ensureProfiles(ids){
   rows.forEach(p => PROF[p.id] = Object.assign({}, p, { t: now }));
 }
 const normPost = p => ({
-  id: p.id, text: p.text, images: p.image_paths || [], views: p.impressions || 0, cast: p.cast_mode || null, cat: p.created_at, ts: Date.parse(p.created_at), uid: p.user_id,
+  id: p.id, text: p.text, images: p.image_paths || [], views: p.impressions || 0, cast: p.cast_mode || null, cat: p.created_at, ts: Date.parse(p.created_at), uid: p.user_id, repostOf: p.repost_of || null, isRepost: !!p.is_repost,
   likes: (p.likes || []).map(l => l.user_id),
-  comments: (p.comments || []).map(c => ({ id:c.id, text:c.text, ts:Date.parse(c.created_at), uid:c.user_id, parent:c.parent_id || null, likes:(c.comment_likes || []).map(l => l.user_id) })).sort((a,b)=>a.ts-b.ts)
+  comments: (p.comments || []).map(c => ({ id:c.id, text:c.text, ts:Date.parse(c.created_at), uid:c.user_id, images:c.image_paths || [], parent:c.parent_id || null, likes:(c.comment_likes || []).map(l => l.user_id) })).sort((a,b)=>a.ts-b.ts)
 });
-const PSEL = 'id,text,image_paths,impressions,cast_mode,created_at,user_id,likes(user_id),comments(id,text,created_at,user_id,parent_id,comment_likes(user_id))';
+const PSEL = 'id,text,image_paths,repost_of,is_repost,impressions,cast_mode,created_at,user_id,likes(user_id),comments(id,text,image_paths,created_at,user_id,parent_id,comment_likes(user_id))';
 
+/* ========== リポスト・引用: 元のポストと、リポストされた数をまとめて読み込む ========== */
+const ORIG = {};                       // 元のポストID → ポスト（消えていたら null）
+const RPC = {};                        // ポストID → { n: リポスト＋引用の数, mine: 自分がリポスト済みか }
+async function hydrate(list){
+  try{
+    const need = [...new Set(list.filter(p => p.repostOf).map(p => p.repostOf))];
+    if(need.length){
+      const rows = await q(sb.from('posts').select(PSEL).in('id', need));
+      need.forEach(id => { ORIG[id] = null; });
+      rows.forEach(r => { ORIG[r.id] = normPost(r); });
+    }
+    const shown = list.concat(need.map(i => ORIG[i]).filter(Boolean));
+    const cids = [...new Set(shown.filter(p => !p.isRepost).map(p => p.id))];
+    if(cids.length){
+      const rs = await q(sb.from('posts').select('id,repost_of,user_id,is_repost').in('repost_of', cids));
+      cids.forEach(id => { RPC[id] = { n: 0, mine: false }; });
+      rs.forEach(r => { const o = RPC[r.repost_of]; if(o){ o.n++; if(r.is_repost && r.user_id === me.id) o.mine = true; } });
+    }
+    await ensureProfiles(shown.flatMap(p => [p.uid, ...p.comments.map(c => c.uid)]));
+    await trySign(shown.flatMap(p => p.images.concat(p.comments.flatMap(c => c.images))));
+  }catch(e){}
+}
 /* ========== 画像（非公開の置き場所に保存し、見るときだけ期限つきのURLを発行） ========== */
 const signed = {};                   // 保存場所 → {url, exp}
 async function signPaths(paths){
@@ -655,7 +700,7 @@ const rmImg = path => Promise.resolve(sb.storage.from(BUCKET).remove([path])).ca
 
 /* 添付する画像（投稿の入力欄 'main' 'm' は4枚まで、DM 'dm' は1枚） */
 const cimg = {};                       // 入力欄ID → [{blob, url}, ...]
-const maxImgs = id => id === 'dm' ? 1 : 4;
+const maxImgs = id => (id === 'dm' || /^c-/.test(id)) ? 1 : 4;
 function showPrev(id){
   const pv = $('#pv-' + id); if(!pv) return;
   const list = cimg[id] || [];
@@ -811,7 +856,7 @@ async function doLogout(silent){
 }
 const logout = () => doLogout(false);
 
-function setNavH(){ const n = $('nav'); document.documentElement.style.setProperty('--navh', ((n && n.offsetHeight) || 52) + 'px'); }
+function setNavH(){ document.documentElement.style.setProperty('--navh', '0px'); }
 window.addEventListener('resize', setNavH);
 
 function start(){
@@ -826,7 +871,7 @@ function start(){
 
 /* ========== ナビ ========== */
 document.querySelectorAll('.nav-item').forEach(b => b.onclick = () => {
-  view = b.dataset.view; dmWith = null; profileId = me.id; editing = false; feedCtx = ''; profCtx = ''; go(); window.scrollTo(0,0);
+  closeNav(); view = b.dataset.view; dmWith = null; profileId = me.id; editing = false; feedCtx = ''; profCtx = ''; go(); window.scrollTo(0,0);
 });
 $('#openCompose').onclick = openComposeModal;
 $('#fab').onclick = openComposeModal;
@@ -834,7 +879,28 @@ $('#fab').onclick = openComposeModal;
 function syncFab(){ $('#fab').classList.toggle('hidden', !me || view !== 'home'); }
 
 const TITLES = { home:'ホーム', search:'検索', notif:'通知', dm:'DM', quest:'クエスト', me:'プロフィール' };
-const headHTML = t => `<div class="head">${t}</div>`;
+const headHTML = t => `<div class="head"><span class="avatar head-av${(unread || unreadDM) ? ' unread' : ''}" style="${me ? avBG(PROF[me.id] || me) : ''}" onclick="openNav()">${me ? avTxt(PROF[me.id] || me) : ''}</span>${t}</div>`;
+/* スマホの左メニュー */
+function openNav(){ paintNavUser(); document.body.classList.add('nav-open'); }
+function closeNav(){ document.body.classList.remove('nav-open'); }
+function paintNavUser(){
+  const el = $('#navUser'); if(!el || !me) return;
+  const u = PROF[me.id] || me;
+  el.innerHTML = `<div class="avatar" style="${avBG(u)}">${avTxt(u)}</div><b>${nm(u)}</b>`;
+}
+function navUserClick(){ closeNav(); view = 'me'; dmWith = null; profileId = me.id; editing = false; feedCtx = ''; profCtx = ''; go(); window.scrollTo(0,0); }
+document.addEventListener('keydown', e => { if(e.key === 'Escape') closeNav(); });
+(function(){            // 左の端から右へスワイプで開く／メニューを左へスワイプで閉じる
+  let sx = null, sy = 0;
+  document.addEventListener('touchstart', e => { const t = e.touches[0]; sx = t.clientX; sy = t.clientY; }, { passive:true });
+  document.addEventListener('touchend', e => {
+    if(sx === null || window.innerWidth > 820) return;
+    const t = e.changedTouches[0], dx = t.clientX - sx, dy = Math.abs(t.clientY - sy);
+    if(dy < 50 && !document.body.classList.contains('nav-open') && sx < 24 && dx > 70 && me && !$('#modalHost').innerHTML) openNav();
+    else if(dy < 50 && document.body.classList.contains('nav-open') && dx < -60) closeNav();
+    sx = null;
+  }, { passive:true });
+})();
 const homeTop = () => headHTML('ホーム') + `<div id="onlineBox"></div>` +
   `<div class="subtabs"><button class="${homeTab==='all'?'on':''}" onclick="setTab('all')">すべて</button><button class="${homeTab==='following'?'on':''}" onclick="setTab('following')">フォロー中</button></div>`;
 function setTab(t){ if(homeTab === t) return; homeTab = t; feed = []; feedCtx = ''; go(); }
@@ -873,7 +939,7 @@ async function refresh(silent){
         if(!lp){ const r1 = await q(sb.from('posts').select(PSEL).eq('id', castSt.post_id).maybeSingle()).catch(() => null); if(r1) lp = normPost(r1); }
       }
       await ensureProfiles(list.concat(lp ? [lp] : []).flatMap(p => [p.uid, ...p.comments.map(c => c.uid)]));
-      await trySign(list.flatMap(p => p.images));
+      await hydrate(list);
       if(view !== v || homeTab !== tab || !me) return;
       feed = list; feedMore = feedMoreNext; livePost = lp;
     }
@@ -907,7 +973,7 @@ async function refresh(silent){
       await ensureProfiles([id]);
       const list = rows.map(normPost);
       await ensureProfiles(list.concat(pinned ? [pinned] : []).flatMap(p => p.comments.map(c => c.uid)));
-      await trySign(list.concat(pinned ? [pinned] : []).flatMap(p => p.images));
+      await hydrate(list.concat(pinned ? [pinned] : []));
       if(view !== v || profileId !== pid || !me) return;
       if(!PROF[id]) throw new Error('ユーザーが見つかりません');
       profile = { user: PROF[id], own: id === me.id, posts: list, nposts: npost, likes: nlike >= 0 ? nlike : list.reduce((s,p) => s + p.likes.length, 0), followers: fers, following: fing, followed: !!fol, pinId, pinned, blocked: myBlocks.has(id) };
@@ -971,6 +1037,7 @@ function setBadge(){
   const bd = $('#nBadge'); bd.textContent = unread; bd.classList.toggle('hidden', !unread || view === 'notif');
   const dd = $('#dBadge'); if(dd){ dd.textContent = unreadDM; dd.classList.toggle('hidden', !unreadDM || view === 'dm'); }
   document.title = (unread ? '(' + unread + ') ' : '') + 'filx';
+  document.querySelectorAll('.head-av').forEach(e => e.classList.toggle('unread', !!(unread || unreadDM)));
 }
 
 function render(){
@@ -1001,23 +1068,24 @@ function render(){
     if(e) e.scrollIntoView({ block:'center' }); else toast('この投稿は見つかりませんでした');
     pendingScroll = null;
   }
+  openComments.forEach(pid => bindFile('c-' + pid));
   observePosts(); observeMore(); paintOnline(); pfxCheck(); castAttach(); castBar();
   if(isAdmin && view === 'me' && profile && !profile.own) loadAdmFil(profile.user.id);
 }
 
 /* ========== 投稿フォーム ========== */
-function composeHTML(id){
+function composeHTML(id, quoteId){
   const u = PROF[me.id] || me;
   return `<div class="compose" id="cmp-${id}">
     <div class="avatar" style="${avBG(u)}">${avTxt(u)}</div>
     <div class="compose-main">
-    <textarea id="t-${id}" maxlength="400" placeholder="いま、どうしてる？"></textarea>
-    <div class="pv hidden" id="pv-${id}"></div>
+    <textarea id="t-${id}" maxlength="400" placeholder="${quoteId ? 'コメントを書く' : 'いま、どうしてる？'}"></textarea>
+    <div class="pv hidden" id="pv-${id}"></div>${quoteId ? quoteHTML(quoteId) : ''}
     <div class="compose-row">
       <label class="small-btn">画像<input type="file" accept="image/*" hidden id="f-${id}"></label>
-      <button class="small-btn" type="button" onclick="openCastStart()">📡 ライブ</button>
+      ${quoteId ? '' : '<button class="small-btn" type="button" onclick="openCastStart()">📡 ライブ</button>'}
       <span class="count" id="n-${id}">0/400</span>
-      <button class="btn send" id="s-${id}">ポスト</button>
+      <button class="btn send" id="s-${id}">${quoteId ? '引用ポスト' : 'ポスト'}</button>
     </div></div></div>`;
 }
 function bindCompose(id, after){
@@ -1031,7 +1099,7 @@ function bindCompose(id, after){
     const paths = [];
     try{
       for(const c of list) paths.push(await uploadImg(c.blob));
-      await q(sb.from('posts').insert({ user_id: me.id, text, image_paths: paths }));
+      await q(sb.from('posts').insert(Object.assign({ user_id: me.id, text, image_paths: paths }, quoteOf[id] ? { repost_of: quoteOf[id], is_repost: false } : {})));
       dropImg(id);
       if(after) after();
       view = 'home'; dmWith = null; go(); window.scrollTo(0,0); toast('投稿しました');
@@ -1045,7 +1113,7 @@ function openComposeModal(){
   bindCompose('m', closeModal);
   $('#t-m').focus();
 }
-function closeModal(){ dropImg('m'); lbState = null; $('#modalHost').innerHTML = ''; }
+function closeModal(){ dropImg('m'); dropImg('q'); delete quoteOf.q; lbState = null; $('#modalHost').innerHTML = ''; }
 document.addEventListener('keydown', e => { if(e.key === 'Escape' && $('#modalHost').innerHTML) closeModal(); });
 
 /* ========== フィード ========== */
@@ -1071,7 +1139,7 @@ async function loadMore(){
     const rows = await q(qy.lt('created_at', before).order('created_at', { ascending:false }).limit(PAGE));
     const list = rows.map(normPost);
     await ensureProfiles(list.flatMap(p => [p.uid, ...p.comments.map(c => c.uid)]));
-    await trySign(list.flatMap(p => p.images));
+    await hydrate(list);
     if(view !== v || homeTab !== tab || profileId !== pid || !me) return;
     const target = isHome ? feed : profile.posts;
     const have = new Set(target.map(p => p.id));
@@ -1089,10 +1157,27 @@ function observeMore(){
   moreObs.disconnect(); moreObs.observe(el);
 }
 const pinMark = p => (view === 'me' && profile && profile.pinId === p.id) ? '<div class="pinlab">📌 ピン留め</div>' : '';
-function postHTML(p){
+/* 引用された元のポスト（小さなカード） */
+function quoteHTML(id){
+  const o = ORIG[id];
+  if(!o) return `<div class="qcard gone">元のポストは削除されました</div>`;
+  const a = U(o.uid), t = o.text ? [...o.text].slice(0, 100).join('') + ([...o.text].length > 100 ? '…' : '') : '';
+  const im = (o.images || [])[0] ? imgUrl(o.images[0]) : '';
+  return `<div class="qcard"><div><span class="avatar sm" style="${avBG(a)}">${avTxt(a)}</span><span class="who">${nm(a)}</span><span class="meta">${ago(o.ts)}</span></div>
+    ${t ? `<div class="text" style="margin:4px 0 0">${esc(t)}</div>` : ''}${im ? `<img class="qimg" src="${esc(im)}" alt="" loading="lazy">` : ''}${!t && !im ? '<div class="meta" style="margin:4px 0 0">（本文なし）</div>' : ''}</div>`;
+}
+function postHTML(p0){
+  let p = p0, via = null;
+  if(p0.isRepost){                                   // リポスト: 元のポストを、リポストした人つきで表示する
+    const o = ORIG[p0.repostOf]; if(!o) return '';
+    p = o; via = p0;
+  }
   const a = U(p.uid), open = openComments.has(p.id), mine = p.uid === me.id;
   const liked = p.likes.includes(me.id);
-  return `<div class="post" id="p-${p.id}" data-pid="${p.id}" data-mine="${mine ? 1 : 0}">
+  const rc = RPC[p.id] || { n: 0, mine: false };
+  const viaHTML = via ? `<div class="pinlab">🔁 ${via.uid === me.id ? 'あなた' : nm(U(via.uid))}がリポスト${via.uid === me.id ? ` <a class="more-btn" onclick="toggleRepost('${p.id}')">取り消す</a>` : ''}</div>` : '';
+  return `<div class="post" id="p-${via ? via.id : p.id}" data-pid="${p.id}" data-mine="${mine ? 1 : 0}">
+    ${viaHTML}
     <div class="post-top">
       <div class="avatar link" style="${avBG(a)}" onclick="openProfile('${a.id}')">${avTxt(a)}</div>
       <div class="post-body">
@@ -1100,9 +1185,11 @@ function postHTML(p){
         <div><span class="who link" onclick="openProfile('${a.id}')">${nm(a)}</span><span class="meta">${ago(p.ts)}</span></div>
         ${p.cast ? castLabel(p) : (p.text ? postTextHTML(p.text) : '')}
         ${galleryHTML(p)}
+        ${p.repostOf && !p.isRepost ? quoteHTML(p.repostOf) : ''}
         <div class="actions">
           <button class="act ${liked?'liked':''}" onclick="toggleLike('${p.id}')">${liked?'❤️':'🤍'} ${p.likes.length}</button>
           <button class="act" onclick="toggleComments('${p.id}')">💬 ${p.comments.length}</button>
+          ${p.cast ? '' : `<button class="act ${rc.mine ? 'rted' : ''}" onclick="openRepostMenu('${p.id}')">🔁 ${rc.n}</button>`}
           ${mine || isAdmin ? `<button class="act" onclick="showViewers('${p.id}')" title="見た人を見る">👁 ${p.views}</button>` : `<span class="act static" title="表示された回数">👁 ${p.views}</span>`}
           ${mine ? `<button class="act" onclick="togglePin('${p.id}')">${me.pinned_post_id === p.id ? '📌 ピン留めを外す' : '📌 ピン留め'}</button><button class="act del" onclick="delPost('${p.id}')">🗑 削除</button>`
                  : (canMod(p.uid) ? `<button class="act del" onclick="delPost('${p.id}')">🗑 削除（${isAdmin ? '管理者' : '金バッジ'}）</button>` : '')}
@@ -1112,13 +1199,40 @@ function postHTML(p){
     ${open ? commentsHTML(p) : ''}
   </div>`;
 }
+/* ========== リポスト・引用 ========== */
+const quoteOf = {};                  // 入力欄ID → 引用する元のポストID
+function openRepostMenu(pid){
+  const rc = RPC[pid] || { mine: false };
+  $('#modalHost').innerHTML = `<div class="modal-bg" id="mbg"><div class="modal" style="max-width:340px"><div class="head" style="position:static">シェアする</div>
+    <div style="padding:10px 16px 16px;display:grid;gap:8px">
+      <button class="btn" onclick="closeModal();toggleRepost('${pid}')">${rc.mine ? '🔁 リポストを取り消す' : '🔁 リポスト（そのまま共有）'}</button>
+      <button class="btn ghost" onclick="openQuote('${pid}')">✏️ 引用（コメントをつけて共有）</button>
+    </div></div></div>`;
+  $('#mbg').onclick = e => { if(e.target.id === 'mbg') closeModal(); };
+}
+async function toggleRepost(pid){
+  const rc = RPC[pid] || { mine: false };
+  try{
+    if(rc.mine) await q(sb.from('posts').delete().eq('repost_of', pid).eq('user_id', me.id).eq('is_repost', true));
+    else await q(sb.from('posts').insert({ user_id: me.id, text: '', image_paths: [], repost_of: pid, is_repost: true }));
+    toast(rc.mine ? 'リポストを取り消しました' : 'リポストしました');
+    await refresh(true);
+  }catch(e){ toast(fail(e)); }
+}
+function openQuote(pid){
+  dropImg('q'); quoteOf.q = pid;
+  $('#modalHost').innerHTML = `<div class="modal-bg" id="mbg"><div class="modal">${composeHTML('q', pid)}</div></div>`;
+  $('#mbg').onclick = e => { if(e.target.id === 'mbg') closeModal(); };
+  bindCompose('q', closeModal);
+  const t = $('#t-q'); if(t) t.focus();
+}
 const replyTo = {};                  // 投稿ID → 返信しようとしているコメントID
 function commentHTML(p, c, parentName){
   const a = U(c.uid), liked = c.likes.includes(me.id);
   const del = c.uid === me.id ? `<button class="act del" onclick="delComment('${p.id}','${c.id}')">削除</button>`
             : (canMod(c.uid) ? `<button class="act del" onclick="delComment('${p.id}','${c.id}')">削除（${isAdmin ? '管理者' : '金バッジ'}）</button>` : '');
   const to = parentName ? `<div class="replyto">↪ <b>@${esc(parentName)}</b> への返信</div>` : '';
-  return `<div class="comment${parentName ? ' reply' : ''}" id="c-${c.id}"><span class="avatar sm link" style="${avBG(a)}" onclick="openProfile('${a.id}')">${avTxt(a)}</span><span class="who link" onclick="openProfile('${a.id}')">${nm(a)}</span><span class="meta">${ago(c.ts)}</span>${to}<div class="text" style="margin:2px 0 0">${esc(c.text)}</div><div class="actions c-act"><button class="act ${liked?'liked':''}" onclick="toggleCommentLike('${p.id}','${c.id}')">${liked?'❤️':'🤍'} ${c.likes.length}</button><button class="act" onclick="startReply('${p.id}','${c.id}')">返信</button>${del}</div></div>`;
+  return `<div class="comment${parentName ? ' reply' : ''}" id="c-${c.id}"><span class="avatar sm link" style="${avBG(a)}" onclick="openProfile('${a.id}')">${avTxt(a)}</span><span class="who link" onclick="openProfile('${a.id}')">${nm(a)}</span><span class="meta">${ago(c.ts)}</span>${to}${c.text ? `<div class="text" style="margin:2px 0 0">${esc(c.text)}</div>` : ''}${galleryHTML({ id: 'c' + c.id, images: c.images || [] })}<div class="actions c-act"><button class="act ${liked?'liked':''}" onclick="toggleCommentLike('${p.id}','${c.id}')">${liked?'❤️':'🤍'} ${c.likes.length}</button><button class="act" onclick="startReply('${p.id}','${c.id}')">返信</button>${del}</div></div>`;
 }
 function commentsHTML(p){
   const byId = {}; p.comments.forEach(c => byId[c.id] = c);
@@ -1135,11 +1249,11 @@ function commentsHTML(p){
   if(replyTo[p.id] && !rt) delete replyTo[p.id];
   const hint = rt ? `<div class="replying">↪ <b>@${esc(U(rt.uid).name)}</b> に返信中 <button onclick="cancelReply('${p.id}')">×</button></div>` : '';
   return `<div class="comments">${parts.join('') || '<div class="meta" style="margin:0">最初のコメントを書いてみよう</div>'}
-    ${hint}<div class="cform"><input id="ci-${p.id}" maxlength="100" placeholder="${rt ? '返信を書く' : 'コメントする'}" onkeydown="if(event.key==='Enter')addComment('${p.id}')"><button onclick="addComment('${p.id}')">送信</button></div></div>`;
+    ${hint}<div class="cform"><label class="cimgbtn" title="画像を付ける">🖼<input type="file" accept="image/*" hidden id="f-c-${p.id}"></label><input id="ci-${p.id}" maxlength="100" placeholder="${rt ? '返信を書く' : 'コメントする'}" onkeydown="if(event.key==='Enter')addComment('${p.id}')"><button onclick="addComment('${p.id}')">送信</button></div><div class="pv hidden" id="pv-c-${p.id}"></div></div>`;
 }
 function startReply(pid, cid){ replyTo[pid] = cid; openComments.add(pid); render(); const el = $('#ci-' + pid); if(el) el.focus(); }
 function cancelReply(pid){ delete replyTo[pid]; render(); }
-const allPosts = () => feed.concat(profile ? profile.posts.concat(profile.pinned ? [profile.pinned] : []) : [], searchRes ? searchRes.posts : []);
+const allPosts = () => Object.values(ORIG).filter(Boolean).concat(feed, profile ? profile.posts.concat(profile.pinned ? [profile.pinned] : []) : [], searchRes ? searchRes.posts : []);
 async function toggleLike(id){
   const was = (allPosts().find(x => x.id === id) || { likes: [] }).likes.includes(me.id);
   allPosts().filter(x => x.id === id).forEach(p => { p.likes = was ? p.likes.filter(u => u !== me.id) : p.likes.concat(me.id); });
@@ -1209,13 +1323,16 @@ async function delComment(pid, cid){
   }catch(e){ toast(fail(e)); }
 }
 async function addComment(id){
-  const inp = $('#ci-'+id), text = inp.value.trim(); if(!text) return;
+  const inp = $('#ci-'+id), text = inp.value.trim(), key = 'c-' + id, list = (cimg[key] || []).slice();
+  if(!text && !list.length) return;
   inp.disabled = true;
+  const paths = [];
   try{
-    await q(sb.from('comments').insert({ post_id: id, user_id: me.id, text, parent_id: replyTo[id] || null }));
-    delete replyTo[id];
+    for(const x of list) paths.push(await uploadImg(x.blob));
+    await q(sb.from('comments').insert({ post_id: id, user_id: me.id, text, image_paths: paths, parent_id: replyTo[id] || null }));
+    delete replyTo[id]; dropImg(key);
     await refresh(true);
-  }catch(e){ toast(fail(e)); inp.disabled = false; return; }
+  }catch(e){ paths.forEach(rmImg); toast(fail(e)); inp.disabled = false; return; }
   const el = $('#ci-'+id); if(el) el.focus();
 }
 /* 自分の投稿、または管理者なら誰の投稿でも削除できる（データベース側でも同じ決まりで守っている） */
@@ -1251,6 +1368,10 @@ function notifHTML(){
       return `<div class="${cls}" style="cursor:pointer" onclick="goPost('${n.post_id}')">${av}
         <div style="min-width:0"><b>${nm(a)}</b>があなたのコメントに返信しました<br><span style="word-break:break-word">${esc(n.text || '')}</span><br><span class="meta" style="margin:0">${ago(Date.parse(n.created_at))}</span></div></div>`;
     }
+    if(n.type === 'repost' || n.type === 'quote'){
+      return `<div class="${cls}" style="cursor:pointer" onclick="goPost('${n.post_id}')">${av}
+        <div style="min-width:0"><b>${nm(a)}</b>があなたの投稿を${n.type === 'repost' ? 'リポスト' : '引用'}しました${n.type === 'quote' && n.text ? `<br><span style="word-break:break-word">${esc(n.text)}</span>` : ''}<br><span class="meta" style="margin:0">${ago(Date.parse(n.created_at))}</span></div></div>`;
+    }
     const txt = n.post ? (n.post.text || ((n.post.image_paths || []).length ? '（画像）' : '')) : null;
     const prev = txt === null ? '削除された投稿' : esc(txt.slice(0,30)) + (txt.length > 30 ? '…' : '');
     const body = n.type === 'like' ? 'があなたの投稿にいいねしました' : 'があなたの投稿にコメントしました';
@@ -1282,7 +1403,7 @@ async function startDM(){
     openChat(rows[0].id);
   }catch(e){ toast(fail(e)); }
 }
-function openChat(id){ dropImg('dm'); dmReply = null; view = 'dm'; dmWith = id; chat = null; go(); window.scrollTo(0,0); }
+function openChat(id){ closeNav(); dropImg('dm'); dmReply = null; view = 'dm'; dmWith = id; chat = null; go(); window.scrollTo(0,0); }
 function closeChat(){ dropImg('dm'); dmReply = null; dmWith = null; go(); }
 const msgPreview = m => m ? (m.text ? m.text.slice(0, 40) : '（画像）') : '';
 const bubbles = () => chat.messages.map(d => {
@@ -1848,7 +1969,7 @@ async function runSearch(text){
     const rows = await q(sb.from('posts').select(PSEL).in('id', ids.map(r => r.id)).order('created_at', { ascending:false }));
     posts = rows.map(normPost);
     await ensureProfiles(posts.flatMap(p => [p.uid, ...p.comments.map(c => c.uid)]));
-    await trySign(posts.flatMap(p => p.images));
+    await hydrate(posts);
   }
   if(my !== searchSeq) return;
   const now = Date.now();
@@ -2449,5 +2570,4 @@ window.addEventListener('keydown', e => {
     ctrlT = setTimeout(() => { if(ctrlN === 2) goGoogle(); ctrlN = 0; }, 850);   // 5回押しと区別するため、管理者は少し待つ
   } else if(ctrlN === 2){ ctrlN = 0; goGoogle(); }
 }, true);
-
 </script></body></html>
