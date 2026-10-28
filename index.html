@@ -488,6 +488,107 @@ aside{flex:1;padding:20px;min-width:0}
 .lc-form input{flex:1;min-width:0;padding:8px 12px;border:1px solid var(--line);border-radius:18px;background:var(--bg);color:var(--text)}
 .lc-form .btn{margin:0;width:auto;flex-shrink:0;padding:6px 16px}
 .cast-start{padding:14px 16px 16px}
+/* ===== すごいデコ（アイコンをぐるっと大きく囲む枠・全体にかかる光） ===== */
+.frm[class*="f-epic_"]{inset:calc(var(--d)*-.13);--T:calc(var(--d)*.16);border-radius:50%;z-index:1;
+  -webkit-mask:radial-gradient(farthest-side,transparent calc(100% - var(--T)),#000 calc(100% - var(--T) + .5px));mask:radial-gradient(farthest-side,transparent calc(100% - var(--T)),#000 calc(100% - var(--T) + .5px))}
+.frm.sq[class*="f-epic_"]{border-radius:34%;-webkit-mask:none;mask:none;background:none;animation:frmHue 6s linear infinite;
+  box-shadow:inset 0 0 0 calc(var(--T)*.5) var(--c1,#fff),inset 0 0 0 var(--T) var(--c2,#aaa),0 0 12px var(--c1,#fff)}
+.fro{position:absolute;inset:calc(var(--d)*-.13);border-radius:50%;pointer-events:none;z-index:2;font-style:normal;line-height:1}
+.fro.sq{border-radius:34%}
+.fro::before,.fro::after{position:absolute;pointer-events:none;line-height:1;white-space:nowrap}
+.frs{position:absolute;inset:0;border-radius:50%;overflow:hidden;pointer-events:none;z-index:2}
+.frs.sq{border-radius:28%}
+.frs::before{content:'';position:absolute;top:-10%;bottom:-10%;left:-70%;width:40%;background:linear-gradient(100deg,transparent,rgba(255,255,255,.42),transparent);transform:skewX(-20deg);animation:frShine 3.4s ease-in-out infinite}
+.frs::after{content:'';position:absolute;inset:0}
+.avatar.sm .fro,.avatar.sm .frs{display:none}
+.avatar.sm .frm[class*="f-epic_"]{inset:-3px;--T:5px}
+@keyframes frShine{0%{left:-70%}55%,100%{left:140%}}
+@keyframes frBob{50%{transform:translateY(calc(var(--d)*.04))}}
+@keyframes frBlink{0%,100%{opacity:1}20%{opacity:.15}40%{opacity:1}55%{opacity:.3}70%{opacity:1}}
+@keyframes frFlame{0%,100%{transform:scaleY(1) translateY(0)}50%{transform:scaleY(1.25) translateY(calc(var(--d)*-.03))}}
+@keyframes frOrbit{from{transform:translate(-50%,-50%) rotate(0) translateX(calc(var(--d)*.72)) rotate(0)}to{transform:translate(-50%,-50%) rotate(360deg) translateX(calc(var(--d)*.72)) rotate(-360deg)}}
+@keyframes frHolo{to{background-position:300% 300%}}
+@keyframes frFlap{0%,100%{transform:rotate(var(--r0))}50%{transform:rotate(var(--r1))}}
+/* 1 レトロガジェット */
+.frm.f-epic_gadget{background:conic-gradient(from 20deg,#ffe94d,#f4b400 25%,#ffe94d 50%,#f4b400 75%,#ffe94d);--c1:#ffe94d;--c2:#f0a800}
+.fro.f-epic_gadget{background:radial-gradient(circle at 36% 98%,#ef2b2b 0 calc(var(--d)*.05),transparent calc(var(--d)*.055)),radial-gradient(circle at 48% 100%,#ef2b2b 0 calc(var(--d)*.05),transparent calc(var(--d)*.055)),radial-gradient(circle at 60% 98%,#ef2b2b 0 calc(var(--d)*.05),transparent calc(var(--d)*.055))}
+.fro.f-epic_gadget::before,.fro.f-epic_gadget::after{content:'';top:calc(var(--d)*.01);width:calc(var(--d)*.2);height:calc(var(--d)*.2);border:calc(var(--d)*.055) solid #ec2a7a;border-radius:50%}
+.fro.f-epic_gadget::before{left:calc(var(--d)*.0)}.fro.f-epic_gadget::after{right:calc(var(--d)*.0)}
+/* 2 ネオンツイン */
+.frm.f-epic_neon{background:conic-gradient(#ff2bd6,#22d3ee,#ff2bd6,#22d3ee,#ff2bd6);animation:frmSpin 3s linear infinite;filter:drop-shadow(0 0 5px #ff2bd6);--c1:#ff2bd6;--c2:#22d3ee}
+.frs.f-epic_neon::after{box-shadow:inset 0 0 calc(var(--d)*.18) rgba(34,211,238,.55)}
+/* 3 お花ばたけ */
+.frm.f-epic_flower{background:conic-gradient(#ffb3d1,#fff,#ff7eb6,#fff,#ffb3d1);--c1:#ff7eb6;--c2:#ffd1e6}
+.fro.f-epic_flower::before,.fro.f-epic_flower::after{left:calc(var(--d)*.02);font-size:calc(var(--d)*.3);letter-spacing:calc(var(--d)*.62);animation:frBob 2.4s ease-in-out infinite}
+.fro.f-epic_flower::before{content:'🌸🌷';top:calc(var(--d)*-.07)}
+.fro.f-epic_flower::after{content:'🌼🌿';bottom:calc(var(--d)*-.07);animation-delay:1.2s}
+/* 4 ぐるぐるわくせい */
+.frm.f-epic_planet{background:conic-gradient(#1e1b4b,#6d28d9,#38bdf8,#6d28d9,#1e1b4b);animation:frmSpin 8s linear infinite;--c1:#6d28d9;--c2:#38bdf8}
+.fro.f-epic_planet::before{content:'';top:50%;left:50%;width:calc(var(--d)*1.55);height:calc(var(--d)*.5);margin:calc(var(--d)*-.25) 0 0 calc(var(--d)*-.775);border:calc(var(--d)*.025) solid rgba(255,224,130,.8);border-radius:50%;transform:rotate(-22deg);box-shadow:0 0 6px rgba(255,200,80,.7)}
+.fro.f-epic_planet::after{content:'🌙';top:50%;left:50%;font-size:calc(var(--d)*.26);animation:frOrbit 5s linear infinite}
+/* 5 でんげき */
+.frm.f-epic_electric{background:conic-gradient(#fff700,#fff,#ffd000,#fff,#fff700);animation:frmSpin 2s linear infinite,frBlink .6s steps(1) infinite;filter:drop-shadow(0 0 5px #ffe600);--c1:#fff700;--c2:#ffb300}
+.fro.f-epic_electric::before,.fro.f-epic_electric::after{left:calc(var(--d)*.12);font-size:calc(var(--d)*.3);letter-spacing:calc(var(--d)*.62);animation:frBlink .9s steps(1) infinite}
+.fro.f-epic_electric::before{content:'⚡⚡';top:calc(var(--d)*-.06)}
+.fro.f-epic_electric::after{content:'⚡⚡';bottom:calc(var(--d)*-.06);animation-delay:.4s}
+.frs.f-epic_electric::after{background:rgba(255,255,150,.2);animation:frBlink 1.1s steps(1) infinite}
+/* 6 ほのおの輪 */
+.frm.f-epic_fire{background:conic-gradient(#ff3d00,#ffb300,#ff1744,#ffd54f,#ff3d00);animation:frmSpin 2s linear infinite,frmFlick .4s ease-in-out infinite alternate;--c1:#ff6d00;--c2:#ffd54f}
+.fro.f-epic_fire::before{content:'🔥🔥🔥';top:calc(var(--d)*-.14);left:calc(var(--d)*.1);font-size:calc(var(--d)*.3);letter-spacing:calc(var(--d)*.3);transform-origin:50% 100%;animation:frFlame .7s ease-in-out infinite}
+.fro.f-epic_fire::after{content:'🔥🔥';bottom:calc(var(--d)*-.1);left:calc(var(--d)*.3);font-size:calc(var(--d)*.22);letter-spacing:calc(var(--d)*.4);transform-origin:50% 100%;animation:frFlame .9s ease-in-out .2s infinite}
+.frs.f-epic_fire::after{background:linear-gradient(to top,rgba(255,80,0,.4),transparent 55%);animation:frmPulse 1.2s ease-in-out infinite}
+/* 7 こおりの結晶 */
+.frm.f-epic_ice{background:conic-gradient(#e0f7ff,#4dd0ff,#fff,#7de3ff,#e0f7ff);animation:frmSpin 6s linear infinite;filter:drop-shadow(0 0 4px #8be9ff);--c1:#8be9ff;--c2:#e0f7ff}
+.fro.f-epic_ice::before,.fro.f-epic_ice::after{left:calc(var(--d)*.04);font-size:calc(var(--d)*.28);letter-spacing:calc(var(--d)*.64);animation:frmTwinkle 2s ease-in-out infinite}
+.fro.f-epic_ice::before{content:'❄️❄️';top:calc(var(--d)*-.06)}
+.fro.f-epic_ice::after{content:'❄️❄️';bottom:calc(var(--d)*-.06);animation-delay:1s}
+.frs.f-epic_ice::after{background:linear-gradient(to bottom,rgba(140,225,255,.32),transparent 55%)}
+/* 8 ロイヤルゴールド */
+.frm.f-epic_gold{background:repeating-conic-gradient(#fff3b0 0 8deg,#d4a017 8deg 16deg,#ffd84d 16deg 24deg);animation:frmSpin 14s linear infinite;filter:drop-shadow(0 0 4px #ffcc33);--c1:#ffd84d;--c2:#b8860b}
+.fro.f-epic_gold{background:radial-gradient(circle at 2% 50%,#ff3b6b 0 calc(var(--d)*.06),#fff calc(var(--d)*.065),transparent calc(var(--d)*.07)),radial-gradient(circle at 98% 50%,#3b9bff 0 calc(var(--d)*.06),#fff calc(var(--d)*.065),transparent calc(var(--d)*.07))}
+.fro.f-epic_gold::before{content:'💎';top:calc(var(--d)*-.1);left:50%;transform:translateX(-50%);font-size:calc(var(--d)*.3);animation:frmPulse 1.8s ease-in-out infinite}
+.fro.f-epic_gold::after{content:'✨';bottom:calc(var(--d)*-.02);right:calc(var(--d)*.04);font-size:calc(var(--d)*.26);animation:frmTwinkle 1.4s ease-in-out infinite}
+/* 9 ホログラム */
+.frm.f-epic_holo{background:conic-gradient(#ff5e5e,#ffd35e,#5eff8b,#5ee0ff,#a05eff,#ff5ec3,#ff5e5e);animation:frmSpin 2s linear infinite;--c1:#5ee0ff;--c2:#ff5ec3}
+.frs.f-epic_holo::after{background:linear-gradient(135deg,rgba(255,94,94,.3),rgba(94,255,139,.3),rgba(94,224,255,.3),rgba(160,94,255,.3),rgba(255,94,94,.3));background-size:300% 300%;animation:frHolo 3s linear infinite}
+.fro.f-epic_holo::before,.fro.f-epic_holo::after{content:'✨';font-size:calc(var(--d)*.26);animation:frmTwinkle 1.2s ease-in-out infinite}
+.fro.f-epic_holo::before{top:0;right:calc(var(--d)*.02)}.fro.f-epic_holo::after{bottom:0;left:calc(var(--d)*.02);animation-delay:.6s}
+/* 10 コスモス */
+.frm.f-epic_cosmos{background:conic-gradient(#0b0630,#5b21b6,#ec4899,#38bdf8,#0b0630);animation:frmSpin 6s linear infinite;filter:drop-shadow(0 0 6px #7c3aed);--c1:#7c3aed;--c2:#ec4899}
+.frs.f-epic_cosmos::after{background:radial-gradient(circle at 20% 30%,#fff 0 1px,transparent 2px),radial-gradient(circle at 72% 22%,#fff 0 1px,transparent 2px),radial-gradient(circle at 60% 76%,#fff 0 1.5px,transparent 2.5px),radial-gradient(circle at 26% 80%,#cfe 0 1px,transparent 2px),linear-gradient(rgba(76,29,149,.22),rgba(76,29,149,.22));animation:frmTwinkle 2.4s ease-in-out infinite}
+.fro.f-epic_cosmos::before{content:'⭐';top:50%;left:50%;font-size:calc(var(--d)*.22);animation:frOrbit 6s linear infinite}
+.fro.f-epic_cosmos::after{content:'🌠';top:calc(var(--d)*-.1);right:calc(var(--d)*-.02);font-size:calc(var(--d)*.3);animation:frmTwinkle 2s ease-in-out infinite}
+/* 11 ゴッドフレーム */
+.frm.f-epic_god{background:conic-gradient(#fff,#ffd700,#ff4fd8,#4dd2ff,#fff700,#fff,#ffd700,#ff4fd8,#4dd2ff,#fff);animation:frmSpin 1.8s linear infinite;filter:drop-shadow(0 0 7px #ffd700);--c1:#ffd700;--c2:#ff4fd8}
+.frs.f-epic_god::after{background:linear-gradient(135deg,rgba(255,215,0,.28),rgba(255,79,216,.25),rgba(77,210,255,.28),rgba(255,215,0,.28));background-size:300% 300%;animation:frHolo 2.4s linear infinite}
+.fro.f-epic_god::before{content:'👑';top:calc(var(--d)*-.3);left:50%;transform:translateX(-50%);font-size:calc(var(--d)*.46);filter:drop-shadow(0 0 5px #ffd700);animation:frBob 1.8s ease-in-out infinite}
+.fro.f-epic_god::after{content:'✨';top:50%;left:50%;font-size:calc(var(--d)*.24);animation:frOrbit 3.2s linear infinite}
+/* ---- 高額の飾り ---- */
+.x-hat_wings{width:calc(var(--d)*1.9);height:calc(var(--d)*.6);top:calc(var(--d)*.02)}
+.x-hat_wings::before,.x-hat_wings::after{content:'';position:absolute;top:0;width:calc(var(--d)*.62);height:calc(var(--d)*.42);background:linear-gradient(135deg,#fff,#cfe8ff);box-shadow:0 0 8px #fff;animation:frFlap 1.6s ease-in-out infinite}
+.x-hat_wings::before{left:0;border-radius:100% 8% 100% 8%;--r0:-10deg;--r1:8deg;transform-origin:100% 100%}
+.x-hat_wings::after{right:0;border-radius:8% 100% 8% 100%;--r0:10deg;--r1:-8deg;transform-origin:0 100%}
+.x-hat_royal::before{content:'👑';font-size:calc(var(--d)*.66);filter:drop-shadow(0 0 6px #ffd700);animation:frBob 2s ease-in-out infinite}
+.x-hat_royal::after{content:'✨';position:absolute;right:calc(var(--d)*-.05);top:0;font-size:calc(var(--d)*.22);animation:frmTwinkle 1.2s ease-in-out infinite}
+.x-hat_halo2::before,.x-hat_halo2::after{content:'';position:absolute;border-radius:50%;border:calc(var(--d)*.04) solid #fff6a8;box-shadow:0 0 8px 1px #ffe066,inset 0 0 5px #ffe066}
+.x-hat_halo2::before{width:calc(var(--d)*.56);height:calc(var(--d)*.18);transform:rotate(-12deg);animation:frmPulse 1.6s ease-in-out infinite}
+.x-hat_halo2::after{width:calc(var(--d)*.74);height:calc(var(--d)*.24);transform:rotate(12deg);animation:frmPulse 1.6s ease-in-out .8s infinite}
+.x-bdg_medal::before{content:'🥇'}
+.x-bdg_king{border-color:#ffd700;box-shadow:0 0 6px #ffd700}.x-bdg_king::before{content:'👑'}
+.x-bdg_inf{background:linear-gradient(135deg,#111,#4b1d95);border-color:#ffd700;box-shadow:0 0 8px #ffd700}.x-bdg_inf::before{content:'♾️'}
+.x-fx_lightning{box-shadow:0 0 calc(var(--d)*.3) calc(var(--d)*.06) #ffe600;animation:frBlink 1s steps(1) infinite}
+.x-fx_lightning::before,.x-fx_lightning::after{content:'⚡';position:absolute;font-size:calc(var(--d)*.28)}
+.x-fx_lightning::before{left:calc(var(--d)*-.16);top:calc(var(--d)*.05)}.x-fx_lightning::after{right:calc(var(--d)*-.16);bottom:calc(var(--d)*.05)}
+@keyframes fxAurora{0%,100%{box-shadow:0 0 calc(var(--d)*.4) calc(var(--d)*.1) #34d399,0 0 calc(var(--d)*.9) calc(var(--d)*.05) #6366f1}50%{box-shadow:0 0 calc(var(--d)*.4) calc(var(--d)*.1) #a855f7,0 0 calc(var(--d)*.9) calc(var(--d)*.05) #22d3ee}}
+.x-fx_aurora{animation:fxAurora 4s ease-in-out infinite}
+.x-fx_inferno{box-shadow:0 0 calc(var(--d)*.3) calc(var(--d)*.08) #ff3d00,0 0 calc(var(--d)*.7) calc(var(--d)*.05) #ffab00;animation:frmFlick .45s ease-in-out infinite alternate}
+.x-fx_inferno::before,.x-fx_inferno::after{content:'🔥';position:absolute;font-size:calc(var(--d)*.26);bottom:calc(var(--d)*.3)}
+.x-fx_inferno::before{left:calc(var(--d)*-.05);animation:fxUp 1.8s ease-in infinite}.x-fx_inferno::after{right:calc(var(--d)*-.05);animation:fxUp 1.8s ease-in .9s infinite}
+.x-fx_galaxy{box-shadow:0 0 calc(var(--d)*.35) calc(var(--d)*.07) #7c3aed,0 0 calc(var(--d)*.8) calc(var(--d)*.04) #2563eb;animation:frmPulse 2.4s ease-in-out infinite}
+.x-fx_galaxy::before{content:'✨⭐';position:absolute;top:calc(var(--d)*-.12);left:calc(var(--d)*.02);font-size:calc(var(--d)*.24);letter-spacing:calc(var(--d)*.5);animation:frmTwinkle 1.6s ease-in-out infinite}
+.x-fx_galaxy::after{content:'🌟✨';position:absolute;bottom:calc(var(--d)*-.12);left:calc(var(--d)*.02);font-size:calc(var(--d)*.24);letter-spacing:calc(var(--d)*.5);animation:frmTwinkle 1.6s ease-in-out .8s infinite}
+.x-fx_god{inset:calc(var(--d)*-.45);background:repeating-conic-gradient(rgba(255,215,0,.6) 0 6deg,transparent 6deg 18deg);-webkit-mask:radial-gradient(circle closest-side,transparent 52%,#000 56%,transparent 100%);mask:radial-gradient(circle closest-side,transparent 52%,#000 56%,transparent 100%);animation:frmSpin 9s linear infinite}
+@media(prefers-reduced-motion:reduce){.fro,.fro::before,.fro::after,.frs::before,.frs::after{animation:none!important}}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.112.3/dist/umd/supabase.js"></script>
 </head>
@@ -561,7 +662,7 @@ const AVRE = /^data:image\/jpeg;base64,[A-Za-z0-9+\/=]+$/;
 const hasAv = u => !!(u.avatar && AVRE.test(u.avatar));
 const isSq = u => !!(u && (u.gold || u.is_admin));          // 金バッジ・管理者のアイコンは角丸の四角
 const avBG = u => (hasAv(u) ? `background:url('${u.avatar}') center/cover` : `background:${colorOf(u.name||'?')}`) + (isSq(u) ? ';border-radius:28%' : '');
-const decoHTML = u => (u.frame ? `<i class="frm f-${esc(u.frame)}${isSq(u) ? ' sq' : ''}"></i>` : '')
+const decoHTML = u => (u.frame ? `<i class="frm f-${esc(u.frame)}${isSq(u) ? ' sq' : ''}"></i>` + (/^epic_/.test(u.frame) ? `<i class="fro f-${esc(u.frame)}${isSq(u) ? ' sq' : ''}"></i><i class="frs f-${esc(u.frame)}${isSq(u) ? ' sq' : ''}"></i>` : '') : '')
   + (u.effect ? `<i class="deco fx x-${esc(u.effect)}"></i>` : '')
   + (u.hat ? `<i class="deco hat x-${esc(u.hat)}"></i>` : '')
   + (u.badge ? `<i class="deco bdg x-${esc(u.badge)}"></i>` : '');
@@ -2454,7 +2555,7 @@ function itemCard(f){
 function renderQuest(m){
   if(!fil){ m.innerHTML = headHTML('クエスト') + '<div class="empty">読み込み中…</div>'; return; }
   const byK = k => qSort(fil.quests.filter(q => q.kind === k));
-  const hourly = byK('hourly'), daily = byK('daily'), weekly = byK('weekly'), once = byK('once');
+  const hourly = byK('hourly'), daily = byK('daily'), weekly = byK('weekly'), monthly = byK('monthly'), once = byK('once');
   const ready = fil.quests.filter(q => q.progress >= q.target && !q.claimed).length;
   const tabs = `<div class="subtabs"><button class="${questTab==='quest'?'on':''}" onclick="setQuestTab('quest')">クエスト${ready ? `<span class="badge" style="margin-left:6px">${ready}</span>` : ''}</button><button class="${questTab==='shop'?'on':''}" onclick="setQuestTab('shop')">ショップ</button></div>`;
   const bal = `<div class="fil-bal"><span class="fil-coin">fil</span><b>${fil.infinite ? '∞' : fil.balance}</b><small>fil</small>${fil.infinite ? '<span class="fil-adm">管理者</span>' : ''}</div>`;
@@ -2466,9 +2567,11 @@ function renderQuest(m){
   } else {
     const jst = new Date(Date.now() + 9 * 3600000), mm = 60 - jst.getUTCMinutes();
     const wLeft = (() => { const dow = (jst.getUTCDay() + 6) % 7; const mins = (6 - dow) * 1440 + (23 - jst.getUTCHours()) * 60 + (60 - jst.getUTCMinutes()); const d = Math.floor(mins / 1440), h = Math.floor(mins % 1440 / 60); return d ? `あと${d}日${h}時間` : `あと${h}時間`; })();
+    const mLeft = (() => { const y = jst.getUTCFullYear(), mo = jst.getUTCMonth(), last = new Date(Date.UTC(y, mo + 1, 0)).getUTCDate(); const d = last - jst.getUTCDate(), h = 23 - jst.getUTCHours(); return d ? `あと${d}日${h}時間` : `あと${h}時間`; })();
     body = `<div class="q-sec">毎時 <small>毎時0分にリセット（あと${mm}分）</small></div>${hourly.map(questCard).join('')}
             <div class="q-sec">デイリー <small>毎日0時にリセット</small></div>${daily.map(questCard).join('')}
             <div class="q-sec">ウィークリー <small>毎週月曜0時にリセット（${wLeft}）</small></div>${weekly.map(questCard).join('')}
+            <div class="q-sec">マンスリー <small>毎月1日0時にリセット（${mLeft}）</small></div>${monthly.map(questCard).join('')}
             <div class="q-sec">チャレンジ <small>1回だけ・ごほうび大きめ</small></div>${once.map(questCard).join('')}`;
   }
   m.innerHTML = headHTML('クエスト') + bal + tabs + `<div id="questBox">${body}</div>`;
