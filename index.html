@@ -1,6 +1,7 @@
 <!DOCTYPE html>
-<html lang="ja">
+<html lang="ja" translate="no">
 <head>
+<meta name="google" content="notranslate">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex">
@@ -253,6 +254,7 @@ aside{flex:1;padding:20px;min-width:0}
 .head-av{--d:34px;width:34px;height:34px;font-size:15px;margin-right:14px;flex-shrink:0;position:relative;cursor:pointer;align-items:center;justify-content:center}
 .head .head-av .deco,.head .head-av .dot{display:none}
 .head-av.unread::after{content:'';position:absolute;top:-2px;right:-2px;width:11px;height:11px;border-radius:50%;background:var(--red);border:2px solid var(--card)}
+.ts-box{display:flex;justify-content:center;margin:4px 0 8px;min-height:0}
 .fab{display:none;position:fixed;right:16px;bottom:80px;width:54px;height:54px;border-radius:50%;background:var(--main);color:#fff;border:none;font-size:26px;align-items:center;justify-content:center;box-shadow:0 6px 20px rgba(0,0,0,.5);z-index:25}
 
 /* v2 additions */
@@ -606,6 +608,7 @@ aside{flex:1;padding:20px;min-width:0}
       <div class="field hidden" id="fName"><label>ユーザー名（DMで使う名前）</label><input id="aName" maxlength="40" placeholder="例：taro（絵文字もOK・15文字まで）"></div>
       <div class="field"><label>学校のメールアドレス</label><input id="aEmail" type="email" placeholder="xxxx@fzk.example.jp" autocomplete="username"></div>
       <div class="field"><label>パスワード（6文字以上）</label><input id="aPass" type="password" autocomplete="current-password"></div>
+      <div id="tsBox" class="ts-box"></div>
       <div class="err" id="aErr"></div>
       <button class="btn" id="aBtn">ログイン</button>
     </form>
@@ -858,6 +861,20 @@ function openImg(src){
 }
 
 /* ========== ログイン / 新規登録 ========== */
+/* ========== 「私はロボットではありません」（Cloudflare Turnstile） ==========
+   Cloudflareで作った「サイトキー」をここに入れると、登録・ログイン画面に表示されます。空のままなら表示されません。 */
+const TURNSTILE_SITEKEY = '0x4AAAAAAFpBes4k5HXUuhgX';
+let tsId = null, tsToken = '', tsLoading = false;
+function tsRender(){
+  if(!TURNSTILE_SITEKEY || tsId !== null) return;
+  if(!window.turnstile){
+    if(!tsLoading){ tsLoading = true; const s = document.createElement('script'); s.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit'; s.async = true; document.head.appendChild(s); }
+    setTimeout(tsRender, 300); return;
+  }
+  tsId = window.turnstile.render('#tsBox', { sitekey: TURNSTILE_SITEKEY, theme: 'dark', language: 'ja',
+    callback: t => { tsToken = t; }, 'expired-callback': () => { tsToken = ''; }, 'error-callback': () => { tsToken = ''; } });
+}
+function tsReset(){ tsToken = ''; if(tsId !== null && window.turnstile){ try{ window.turnstile.reset(tsId); }catch(e){} } }
 let mode = 'login';
 function setMode(m){
   mode = m;
@@ -878,7 +895,9 @@ $('#authForm').onsubmit = async e => {
   const name = $('#aName').value.trim();
   if(!email.includes('@')) return err('メールアドレスを正しく入力してください');
   if(password.length < 6) return err('パスワードは6文字以上にしてください');
+  if(TURNSTILE_SITEKEY && !tsToken) return err('「私はロボットではありません」の確認が終わるまで、少し待ってからもう一度押してください');
   $('#aBtn').disabled = true; err('');
+  const captchaToken = tsToken || undefined;
   try{
     if(mode === 'signup'){
       if(!email.includes('fzk')) throw new Error('校内専用です。メールアドレスに「fzk」を含む人だけ登録できます');
@@ -886,16 +905,17 @@ $('#authForm').onsubmit = async e => {
       if(!NAME_RE.test(name)) throw new Error(NAME_MSG);
       const free = await q(sb.rpc('name_available', { n: name }));
       if(!free) throw new Error('そのユーザー名は使われています');
-      const r = await sb.auth.signUp({ email, password, options: { data: { name } } });
+      const r = await sb.auth.signUp({ email, password, options: { data: { name }, captchaToken } });
       if(r.error) throw r.error;
       if(!r.data.session) throw new Error('登録を受け付けましたが、メールの確認が必要な設定になっています。管理者に Supabase の「Confirm email」をオフにしてもらってください');
     } else {
-      const r = await sb.auth.signInWithPassword({ email, password });
+      const r = await sb.auth.signInWithPassword({ email, password, options: { captchaToken } });
       if(r.error) throw r.error;
     }
     await loadMe();
     start();
   }catch(ex){ err(errMsg(ex)); }
+  tsReset();
   $('#aBtn').disabled = false;
 };
 
@@ -2643,7 +2663,7 @@ document.addEventListener('visibilitychange', () => { if(!document.hidden && me)
 /* ========== 起動 ========== */
 let sbProblem = '';
 (async () => {
-  setMode('login');
+  setMode('login'); tsRender();
   if(!window.supabase){ sbProblem = '部品を読み込めませんでした。ネットにつながっているか確認してください'; $('#aErr').textContent = sbProblem; return; }
   if(SUPABASE_URL.startsWith('__') || SUPABASE_KEY.startsWith('__')){ sbProblem = '設定がまだ終わっていません（index.html の SUPABASE_URL と SUPABASE_KEY を入れてください）'; $('#aErr').textContent = sbProblem; return; }
   try{ sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY); }
